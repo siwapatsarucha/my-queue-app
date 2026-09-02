@@ -78,19 +78,21 @@
     </div>
 </div>
 
+<!-- ดึงไฟล์ stepper.js มาใช้แทนโค้ด GAS เดิม -->
 <script src="./stepper.js"></script>
+
 <script>
-    // ⚠️ อย่าลืม! เอา Web App URL ของคุณมาวางในเครื่องหมายคำพูดด้านล่าง
+    // ⚠️ เอา Web App URL ของคุณมาวางในเครื่องหมายคำพูดด้านล่างนี้
     const API_URL = "https://script.google.com/macros/s/AKfycbyOd0GAIJOtBNrAOtSl1GtZLhmy_XjQdbCZC-Nx8LCT-mpxaWRBa13wj_aAOMeHWggOFg/exec"; 
 
+    // ตัวแปรเก็บข้อมูล
     let shopData = {};
     let bookingForm = { phone: '', date: '', service: '', time: '' };
-    let myStepper; // ประกาศตัวแปรไว้รอก่อน
+    let myStepper;
 
-    // 1. ให้เว็บโหลด HTML จนเสร็จก่อน แล้วค่อยให้ JavaScript เริ่มทำงาน
+    // 1. ดึงข้อมูลเมื่อเปิดหน้าเว็บ (แก้ให้รอโหลด HTML ก่อน)
     document.addEventListener("DOMContentLoaded", () => {
-        
-        // เริ่มสร้าง Stepper หลังจากหน้าเว็บโหลดเสร็จ (แก้ Error หา innerHTML ไม่เจอ)
+        // สร้าง Stepper หลังจากหน้าเว็บโหลดเสร็จแล้ว
         myStepper = new Stepper({
             containerId: 'stepper-container',
             steps: ['Start', 'Step2', 'Finish'],
@@ -112,12 +114,13 @@
                         <button class="w-full p-4 bg-gray-100 text-gray-400 rounded-full text-lg hover:bg-gray-200 transition-colors" onclick="myStepper.prev()">Cancel</button>
                     `;
                 } else if (newStep === 3) {
+                    // หน้า 3 โชว์ปุ่มกลับหน้าแรก หรือปิดแอป
                     bottomActions.innerHTML = `<button class="w-full p-4 bg-primary text-white rounded-full text-lg shadow-[0_4px_6px_rgba(74,136,247,0.2)] hover:bg-primaryHover transition-colors" onclick="location.reload()">จองคิวใหม่</button>`;
                 }
             }
         });
 
-        // ดึงข้อมูลจากฐานข้อมูล Google Sheets
+        // ดึงข้อมูลผ่าน Web App API แทน google.script.run
         fetch(API_URL + "?action=getShopData")
             .then(response => response.json())
             .then(data => {
@@ -129,21 +132,23 @@
             });
     });
 
+    // 2. ฟังก์ชันเริ่มทำงานเมื่อได้ข้อมูล
     function initApp(data) {
         shopData = data;
         document.getElementById('loading-overlay').classList.add('hidden');
         renderServices();
         renderCalendar();
+        // เซ็ตค่า Default วันที่แรก
         if(shopData.dates.length > 0) selectDate(shopData.dates[0].fullDate);
     }
 
-    // --- ส่วนของการวาด UI (เอากลับมาใส่ให้ครบแล้วครับ) ---
+    // --- ส่วนของการวาด UI (Render) ---
     function renderServices() {
         const container = document.getElementById('services-container');
         container.innerHTML = '';
         shopData.services.forEach((srv, index) => {
             const div = document.createElement('div');
-            div.className = `chip ${index === 0 ? 'active' : ''}`;
+            div.className = `chip ${index === 0 ? 'active' : ''}`; // เลือกอันแรกเป็น Default
             div.innerText = srv;
             div.onclick = () => selectService(div, srv);
             container.appendChild(div);
@@ -167,7 +172,7 @@
     function renderTimes(selectedDateFull) {
         const container = document.getElementById('times-container');
         container.innerHTML = '';
-        bookingForm.time = ''; 
+        bookingForm.time = ''; // Reset เวลาทุกครั้งที่เปลี่ยนวัน
 
         const dateBookings = shopData.bookingCounts[selectedDateFull] || {};
 
@@ -197,7 +202,7 @@
         document.querySelectorAll('.cal-date').forEach(el => el.classList.remove('active'));
         document.getElementById(`date-${fullDate}`).classList.add('active');
         bookingForm.date = fullDate;
-        renderTimes(fullDate); 
+        renderTimes(fullDate); // อัปเดตเวลาที่ว่างของวันนี้
     }
 
     function selectTime(element, timeStr) {
@@ -224,10 +229,12 @@
             return;
         }
         
+        // โชว์ Loading ที่ปุ่ม
         const btnNext = document.getElementById('btn-next-step2');
         btnNext.innerText = "กำลังบันทึกข้อมูล...";
         btnNext.disabled = true;
 
+        // ส่งข้อมูลไปเซฟที่ Google Sheets ผ่าน Web App
         fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({
@@ -238,6 +245,7 @@
         .then(response => response.json())
         .then(res => {
             if(res.status === "success") {
+                // สรุปข้อมูลที่หน้า 3
                 document.getElementById('summary-text').innerText = 
                     `เบอร์: ${bookingForm.phone}\nบริการ: ${bookingForm.service}\nวันที่: ${bookingForm.date} เวลา ${bookingForm.time}`;
                 myStepper.next();

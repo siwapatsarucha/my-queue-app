@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Kanit', 'sans-serif'] },
+                    colors: {
+                        primary: '#4a88f7', primaryHover: '#3b76d9',
+                        stepBg: '#eef4ff', stepInactive: '#b0c4de', grayLight: '#f3f4f6',
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer components {
+            .step-item.active .step-circle, .step-item.completed .step-circle { @apply bg-primary; }
+            .step-item.active .step-text, .step-item.completed .step-text { @apply text-primary; }
+            .chip { @apply px-[18px] py-[10px] bg-grayLight rounded-full text-sm text-gray-700 cursor-pointer transition-colors duration-200; }
+            .chip.active { @apply bg-primary text-white; }
+            .time-slot { @apply px-3 py-2 bg-grayLight rounded-lg text-[13px] text-gray-700 cursor-pointer; }
+            .time-slot.active { @apply bg-primary text-white; }
+            .time-slot.disabled { @apply line-through text-gray-400 bg-gray-50 cursor-not-allowed; }
+            .cal-date { @apply w-10 h-10 rounded-full flex justify-center items-center text-base cursor-pointer; }
+            .cal-date.active { @apply bg-primary text-white; }
+        }
+    </style>
+</head>
+<body class="bg-gray-200 flex justify-center m-0 p-0 font-sans">
+
+<!-- หน้าจอ Loading ดักไว้ก่อนดึงข้อมูลเสร็จ -->
+<div id="loading-overlay" class="fixed inset-0 bg-white z-50 flex flex-col justify-center items-center">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+    <p class="text-gray-500">กำลังโหลดข้อมูลร้าน...</p>
+</div>
+
+<div class="w-full max-w-[400px] h-screen bg-white relative flex flex-col overflow-x-hidden">
+    <div id="stepper-container"></div>
+
+    <!-- Screen 1 -->
+    <div class="screen flex flex-col p-8 flex-grow pb-[160px]" id="screen1">
+        <div class="mt-auto mb-auto text-center">
+            <p class="text-gray-500 mb-8 text-base">กรุณาใส่เบอร์โทร<br>เพื่อจองคิว</p>
+            <input type="tel" id="phone-input" class="border-b border-black w-4/5 text-lg text-center p-1 outline-none focus:border-primary" placeholder="08x-xxx-xxxx">
+            <p id="phone-error" class="text-red-500 text-sm mt-2 hidden">กรุณาระบุเบอร์โทรศัพท์</p>
+        </div>
+    </div>
+
+    <!-- Screen 2 -->
+    <div class="screen hidden flex-col p-8 flex-grow pb-[160px] overflow-y-auto" id="screen2">
+        <!-- Render Calendar -->
+        <div id="calendar-container" class="flex justify-between mb-6 text-center mt-2"></div>
+        <!-- Render Services -->
+        <div id="services-container" class="flex flex-wrap gap-2.5 mb-6"></div>
+        <!-- Render Times -->
+        <div id="times-container" class="border border-gray-200 rounded-xl p-5 flex flex-wrap gap-2.5"></div>
+    </div>
+
+    <!-- Screen 3 -->
+    <div class="screen hidden flex-col p-8 flex-grow pb-[160px]" id="screen3">
+        <div class="m-auto text-center">
+            <h1 class="text-[42px] text-gray-600 font-normal leading-[1.3] m-0">จองคิว<br>เรียบร้อยค่ะ</h1>
+            <p id="summary-text" class="text-gray-500 mt-4 text-sm"></p>
+        </div>
+    </div>
+
+    <!-- Bottom Actions -->
+    <div id="bottom-actions" class="absolute bottom-0 left-0 w-full p-5 bg-white box-border flex flex-col gap-3">
+        <!-- ใส่ปุ่มเริ่มต้นดักไว้เลย -->
+        <button class="w-full p-4 bg-primary text-white rounded-full text-lg shadow-[0_4px_6px_rgba(74,136,247,0.2)] hover:bg-primaryHover transition-colors" onclick="validateStep1()">Continue</button>
+    </div>
+</div>
+
+<script src="./stepper.js"></script>
+<script>
+    // ใส่ URL ที่ได้จากการ Deploy Web App ของ Google Apps Script (ลงท้ายด้วย /exec)
+    const API_URL = "วาง_WEB_APP_URL_ของคุณที่นี่"; 
+
+    // ตัวแปรเก็บข้อมูล
+    let shopData = {};
+    let bookingForm = { phone: '', date: '', service: '', time: '' };
+
+    // 1. ดึงข้อมูลเมื่อเปิดหน้าเว็บ (เปลี่ยนเป็น fetch)
+    document.addEventListener("DOMContentLoaded", () => {
+        // สมมติว่าเราแนบพารามิเตอร์ ?action=getShopData ไปบอก GAS ว่าขอข้อมูลนะ
+        fetch(API_URL + "?action=getShopData")
+            .then(response => response.json())
+            .then(data => {
+                initApp(data);
+            })
+            .catch(error => {
+                console.error("Error loading data:", error);
+                alert("ไม่สามารถดึงข้อมูลร้านได้ กรุณาลองใหม่อีกครั้ง");
+            });
+    });
+
+    // 2. ฟังก์ชันเริ่มทำงานเมื่อได้ข้อมูล (เหมือนเดิม)
+    function initApp(data) {
+        shopData = data;
+        document.getElementById('loading-overlay').classList.add('hidden');
+        renderServices();
+        renderCalendar();
+        if(shopData.dates.length > 0) selectDate(shopData.dates[0].fullDate);
+    }
+
+    /* ... 
+       (ฟังก์ชัน renderServices, renderCalendar, renderTimes, 
+       selectService, selectDate, selectTime ใส่ไว้เหมือนเดิมได้เลยครับ) 
+       ... */
+
+    // --- Stepper Logic (เหมือนเดิม) ---
+    const myStepper = new Stepper({ /* ... เหมือนเดิม ... */ });
+
+    function validateStep1() { /* ... เหมือนเดิม ... */ }
+
+    function validateStep2() {
+        if(!bookingForm.time) {
+            alert("กรุณาเลือกรอบเวลาก่อนดำเนินการต่อ");
+            return;
+        }
+        
+        const btnNext = document.getElementById('btn-next-step2');
+        btnNext.innerText = "กำลังบันทึกข้อมูล...";
+        btnNext.disabled = true;
+
+        // เปลี่ยนวิธีส่งข้อมูลไปบันทึก (เปลี่ยนเป็น fetch POST)
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'saveBooking',
+                data: bookingForm
+            })
+        })
+        .then(response => response.json())
+        .then(res => {
+            if(res.status === "success") {
+                document.getElementById('summary-text').innerText = 
+                    `เบอร์: ${bookingForm.phone}\nบริการ: ${bookingForm.service}\nวันที่: ${bookingForm.date} เวลา ${bookingForm.time}`;
+                myStepper.next();
+            } else {
+                alert("เกิดข้อผิดพลาด: " + res.message);
+                btnNext.innerText = "Next";
+                btnNext.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error("Error saving data:", error);
+            alert("บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่");
+            btnNext.innerText = "Next";
+            btnNext.disabled = false;
+        });
+    }
+</script>
+
+</body>
+</html>

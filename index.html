@@ -182,19 +182,47 @@
     function renderTimes(selectedDateFull) {
         const container = document.getElementById('times-container');
         container.innerHTML = '';
-        bookingForm.time = ''; 
+        bookingForm.time = ''; // Reset เวลาทุกครั้งที่เปลี่ยนวัน
 
         const dateBookings = shopData.bookingCounts[selectedDateFull] || {};
 
+        // 1. ดึงเวลาปัจจุบันของลูกค้า
+        const now = new Date();
+        
+        // 2. เช็คว่าวันที่ลูกค้าจิ้มเลือกในปฏิทิน คือ "วันนี้" ใช่หรือไม่?
+        // (โดยนำสตริง "YYYY-MM-DD" แปลงเป็น Date เพื่อเทียบ วัน/เดือน/ปี)
+        const selectedDate = new Date(selectedDateFull);
+        const isToday = now.getFullYear() === selectedDate.getFullYear() &&
+                        now.getMonth() === selectedDate.getMonth() &&
+                        now.getDate() === selectedDate.getDate();
+
         shopData.times.forEach(t => {
             const bookedCount = dateBookings[t.timeStr] || 0;
-            const isFull = bookedCount >= t.maxQueue;
+            let isDisabled = bookedCount >= t.maxQueue; // คิวเต็มไหม?
+
+            // 3. เพิ่มเงื่อนไข: ถ้าเป็น "วันนี้" ให้เช็คเวลาว่าผ่านไปหรือยัง
+            if (isToday && !isDisabled) {
+                // ดึงเฉพาะตัวเลข "ชั่วโมง:นาที" ออกมาจากข้อความ (เช่น ดึง 10:30 จาก "10:30 น.")
+                const timeMatch = t.timeStr.match(/(\d{1,2}):(\d{2})/);
+                if (timeMatch) {
+                    const slotHour = parseInt(timeMatch[1], 10);
+                    const slotMinute = parseInt(timeMatch[2], 10);
+                    
+                    // ถ้าชั่วโมงปัจจุบัน เลยชั่วโมงของคิวไปแล้ว 
+                    // หรือ (ชั่วโมงเท่ากัน แต่นาทีปัจจุบัน เลยนาทีของคิวไปแล้ว)
+                    if (now.getHours() > slotHour || (now.getHours() === slotHour && now.getMinutes() >= slotMinute)) {
+                        isDisabled = true; // บังคับให้ปุ่มกดไม่ได้ (จางลง)
+                    }
+                }
+            }
 
             const div = document.createElement('div');
-            div.className = `time-slot ${isFull ? 'disabled' : ''}`;
+            // เปลี่ยนคลาส CSS ให้ปุ่มที่ Disabled เป็นสีเทาและขีดฆ่า (ตามที่คุณตั้ง CSS ไว้)
+            div.className = `time-slot ${isDisabled ? 'disabled' : ''}`;
             div.innerText = t.timeStr;
             
-            if(!isFull) {
+            // ถ้าคิวยังไม่เต็มและเวลาไม่อดีต ถึงจะอนุญาตให้คลิกได้
+            if(!isDisabled) {
                 div.onclick = () => selectTime(div, t.timeStr);
             }
             container.appendChild(div);

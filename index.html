@@ -203,7 +203,7 @@
             // 3. เพิ่มเงื่อนไข: ถ้าเป็น "วันนี้" ให้เช็คเวลาว่าผ่านไปหรือยัง
             if (isToday && !isDisabled) {
                 // ดึงเฉพาะตัวเลข "ชั่วโมง:นาที" ออกมาจากข้อความ (เช่น ดึง 10:30 จาก "10:30 น.")
-                const timeMatch = t.timeStr.match(/(\d{1,2}):(\d{2})/);
+                const timeMatch = t.timeStr.match(/(\d{1,2})[.:](\d{2})/);
                 if (timeMatch) {
                     const slotHour = parseInt(timeMatch[1], 10);
                     const slotMinute = parseInt(timeMatch[2], 10);

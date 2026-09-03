@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คิวของฉัน</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Kanit', 'sans-serif'] },
+                    colors: { primary: '#4a88f7', grayLight: '#f3f4f6' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-200 flex justify-center m-0 p-0 font-sans">
+
+<!-- หน้าจอ Loading -->
+<div id="loading-overlay" class="fixed inset-0 bg-white z-50 flex flex-col justify-center items-center">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+    <p class="text-gray-500" id="loading-text">กำลังโหลดข้อมูลคิวของคุณ...</p>
+</div>
+
+<!-- โครงสร้างหลัก -->
+<div class="w-full max-w-[400px] min-h-screen bg-gray-50 relative flex flex-col overflow-x-hidden">
+    <!-- Header -->
+    <div class="bg-white p-5 shadow-sm text-center sticky top-0 z-10">
+        <h1 class="text-xl font-medium text-gray-800 m-0">คิวของฉัน</h1>
+    </div>
+
+    <!-- รายการคิว -->
+    <div id="queue-list" class="p-5 flex flex-col gap-4">
+        <!-- จะใช้ JavaScript เติมการ์ดคิวลงในนี้ -->
+    </div>
+</div>
+
+<!-- เรียกใช้ LIFF SDK -->
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<script>
+    // ⚠️ ใส่ Web App URL อันใหม่ที่เพิ่ง Deploy
+    const API_URL = "วาง_WEB_APP_URL_ของคุณที่นี่"; 
+    
+    // ⚠️ ใส่ LIFF ID สำหรับหน้าประวัติ (ต้องสร้าง LIFF ใหม่ อ่านสเตป 2 ด้านล่าง)
+    const LIFF_ID = "วาง_LIFF_ID_ตัวที่สอง_ของคุณที่นี่";
+
+    let lineUserId = "";
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // 1. เชื่อมต่อ LIFF เพื่อดึง LINE ID
+        liff.init({ liffId: LIFF_ID })
+            .then(() => {
+                if (liff.isInClient() || liff.isLoggedIn()) {
+                    liff.getProfile().then(profile => {
+                        lineUserId = profile.userId;
+                        loadMyQueues(); // พอได้ ID แล้วค่อยไปดึงข้อมูล
+                    }).catch(err => console.error("Error profile:", err));
+                } else {
+                    alert("กรุณาเปิดผ่านแอป LINE เพื่อดูคิวของคุณ");
+                    document.getElementById('loading-overlay').classList.add('hidden');
+                }
+            })
+            .catch((err) => console.error("LIFF Init Error: ", err));
+    });
+
+    // 2. ดึงข้อมูลคิวจาก Google Sheets
+    function loadMyQueues() {
+        document.getElementById('loading-overlay').classList.remove('hidden');
+        document.getElementById('loading-text').innerText = "กำลังโหลดข้อมูลคิวของคุณ...";
+
+        fetch(`${API_URL}?action=getMyQueues&lineUserId=${lineUserId}`)
+            .then(response => response.json())
+            .then(data => {
+                renderQueues(data);
+                document.getElementById('loading-overlay').classList.add('hidden');
+            })
+            .catch(error => {
+                console.error("Error loading queues:", error);
+                alert("ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่");
+                document.getElementById('loading-overlay').classList.add('hidden');
+            });
+    }
+
+    // 3. วาดการ์ดแสดงรายการคิว
+    function renderQueues(queues) {
+        const container = document.getElementById('queue-list');
+        container.innerHTML = '';
+
+        if (queues.length === 0) {
+            container.innerHTML = `
+                <div class="text-center mt-10">
+                    <p class="text-gray-500 text-lg">ยังไม่มีคิวที่จองไว้ค่ะ</p>
+                </div>
+            `;
+            return;
+        }
+
+        queues.forEach(q => {
+            const card = document.createElement('div');
+            card.className = "bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative";
+            card.innerHTML = `
+                <div class="flex justify-between items-center mb-3">
+                    <span class="font-medium text-[17px] text-gray-800">${q.service}</span>
+                    <span class="text-xs bg-blue-100 text-blue-600 px-3 py-1 rounded-full">รอรับบริการ</span>
+                </div>
+                <div class="text-sm text-gray-600 mb-4 leading-relaxed">
+                    <p>วันที่: <span class="font-medium text-gray-800">${q.date}</span></p>
+                    <p>เวลา: <span class="font-medium text-gray-800">${q.time} น.</span></p>
+                    <p>เบอร์ติดต่อ: <span class="text-gray-800">${q.phone}</span></p>
+                </div>
+                <button onclick="cancelQueue(${q.row})" class="w-full py-2.5 bg-red-50 text-red-500 font-medium rounded-xl hover:bg-red-100 transition-colors border border-red-200">
+                    ยกเลิกคิวนี้
+                </button>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // 4. ฟังก์ชันกดยกเลิกคิว
+    function cancelQueue(rowNum) {
+        if(!confirm("ยืนยันการยกเลิกคิวนี้ใช่หรือไม่? \n(หากยกเลิกแล้วจะไม่สามารถกู้คืนได้)")) return;
+
+        document.getElementById('loading-overlay').classList.remove('hidden');
+        document.getElementById('loading-text').innerText = "กำลังทำการยกเลิกคิว...";
+
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'cancelQueue', row: rowNum })
+        })
+        .then(response => response.json())
+        .then(res => {
+            if(res.status === "success") {
+                // ส่งข้อความแจ้งลงแชท
+                if (liff.isInClient()) {
+                    liff.sendMessages([{
+                        type: 'text',
+                        text: 'แจ้งยกเลิกคิวเรียบร้อยแล้วค่ะ ❌'
+                    }]).then(() => {
+                        alert("ยกเลิกคิวสำเร็จ!");
+                        loadMyQueues(); // โหลดข้อมูลใหม่เพื่ออัปเดตหน้าจอ
+                    });
+                } else {
+                    alert("ยกเลิกคิวสำเร็จ!");
+                    loadMyQueues();
+                }
+            }
+        })
+        .catch(error => {
+            console.error("Error cancelling:", error);
+            alert("ยกเลิกคิวไม่สำเร็จ กรุณาลองใหม่");
+            document.getElementById('loading-overlay').classList.add('hidden');
+        });
+    }
+</script>
+</body>
+</html>

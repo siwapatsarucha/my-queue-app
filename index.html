@@ -96,12 +96,8 @@
     document.addEventListener("DOMContentLoaded", () => {
         // 1. เชื่อมต่อ LIFF
         liff.init({ liffId: LIFF_ID })
-            .then(() => {
-                console.log("LIFF Initialized");
-            })
-            .catch((err) => {
-                console.error("LIFF Init Error: ", err);
-            });
+            .then(() => console.log("LIFF Initialized"))
+            .catch((err) => console.error("LIFF Init Error: ", err));
 
         // 2. สร้าง Stepper
         myStepper = new Stepper({
@@ -125,7 +121,8 @@
                         <button class="w-full p-4 bg-gray-100 text-gray-400 rounded-full text-lg hover:bg-gray-200 transition-colors" onclick="myStepper.prev()">Cancel</button>
                     `;
                 } else if (newStep === 3) {
-                    bottomActions.innerHTML = `<button class="w-full p-4 bg-primary text-white rounded-full text-lg shadow-[0_4px_6px_rgba(74,136,247,0.2)] hover:bg-primaryHover transition-colors" onclick="liff.closeWindow()">ปิดหน้าต่าง</button>`;
+                    // เปลี่ยนปุ่มหน้า 3 ให้เรียกใช้ฟังก์ชันส่งข้อความและปิดหน้าต่าง
+                    bottomActions.innerHTML = `<button class="w-full p-4 bg-primary text-white rounded-full text-lg shadow-[0_4px_6px_rgba(74,136,247,0.2)] hover:bg-primaryHover transition-colors" onclick="closeAndSendMessage()">ยืนยันและปิดหน้าต่าง</button>`;
                 }
             }
         });
@@ -133,9 +130,7 @@
         // 3. ดึงข้อมูลผ่าน Web App API
         fetch(API_URL + "?action=getShopData")
             .then(response => response.json())
-            .then(data => {
-                initApp(data);
-            })
+            .then(data => initApp(data))
             .catch(error => {
                 console.error("Error loading data:", error);
                 alert("ไม่สามารถดึงข้อมูลร้านได้ กรุณาลองใหม่อีกครั้ง");
@@ -150,7 +145,72 @@
         if(shopData.dates.length > 0) selectDate(shopData.dates[0].fullDate);
     }
 
-    // ... (ฟังก์ชัน renderServices, renderCalendar, renderTimes, selectService, selectDate, selectTime ใส่ไว้เหมือนเดิมครับ) ...
+    function renderServices() {
+        const container = document.getElementById('services-container');
+        container.innerHTML = '';
+        shopData.services.forEach((srv, index) => {
+            const div = document.createElement('div');
+            div.className = `chip ${index === 0 ? 'active' : ''}`;
+            div.innerText = srv;
+            div.onclick = () => selectService(div, srv);
+            container.appendChild(div);
+        });
+        if(shopData.services.length > 0) bookingForm.service = shopData.services[0];
+    }
+
+    function renderCalendar() {
+        const container = document.getElementById('calendar-container');
+        container.innerHTML = '';
+        shopData.dates.forEach(d => {
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = `
+                <div class="text-xs text-gray-500 mb-1">${d.dayStr}</div>
+                <div class="cal-date" id="date-${d.fullDate}" onclick="selectDate('${d.fullDate}')">${d.dateNum}</div>
+            `;
+            container.appendChild(wrapper);
+        });
+    }
+
+    function renderTimes(selectedDateFull) {
+        const container = document.getElementById('times-container');
+        container.innerHTML = '';
+        bookingForm.time = ''; 
+
+        const dateBookings = shopData.bookingCounts[selectedDateFull] || {};
+
+        shopData.times.forEach(t => {
+            const bookedCount = dateBookings[t.timeStr] || 0;
+            const isFull = bookedCount >= t.maxQueue;
+
+            const div = document.createElement('div');
+            div.className = `time-slot ${isFull ? 'disabled' : ''}`;
+            div.innerText = t.timeStr;
+            
+            if(!isFull) {
+                div.onclick = () => selectTime(div, t.timeStr);
+            }
+            container.appendChild(div);
+        });
+    }
+
+    function selectService(element, serviceName) {
+        document.querySelectorAll('.chip').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+        bookingForm.service = serviceName;
+    }
+
+    function selectDate(fullDate) {
+        document.querySelectorAll('.cal-date').forEach(el => el.classList.remove('active'));
+        document.getElementById(`date-${fullDate}`).classList.add('active');
+        bookingForm.date = fullDate;
+        renderTimes(fullDate); 
+    }
+
+    function selectTime(element, timeStr) {
+        document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+        bookingForm.time = timeStr;
+    }
 
     function validateStep1() {
         const phone = document.getElementById('phone-input').value.trim();
@@ -183,28 +243,10 @@
         .then(response => response.json())
         .then(res => {
             if(res.status === "success") {
+                // บันทึกสำเร็จ ให้แสดงข้อมูลในหน้า 3 แล้วพาไปหน้า 3
                 document.getElementById('summary-text').innerText = 
                     `เบอร์: ${bookingForm.phone}\nบริการ: ${bookingForm.service}\nวันที่: ${bookingForm.date} เวลา ${bookingForm.time}`;
-                
-                // --- ส่วนที่เพิ่มเข้ามา: สั่งให้ไลน์ส่งข้อความ ---
-                if (liff.isInClient()) {
-                    liff.sendMessages([
-                        {
-                            type: 'text',
-                            text: `จองคิวเรียบร้อยค่ะ 🎉\nบริการ: ${bookingForm.service}\nวันที่: ${bookingForm.date}\nเวลา: ${bookingForm.time} น.\nเบอร์โทร: ${bookingForm.phone}`
-                        }
-                    ]).then(() => {
-                        // ส่งข้อความเสร็จแล้ว ให้ปิดหน้าเว็บอัตโนมัติ
-                        liff.closeWindow();
-                    }).catch((error) => {
-                        console.error('Error sending message:', error);
-                        myStepper.next(); // ถ้าส่งข้อความพัง ให้ไปหน้า 3 แทน
-                    });
-                } else {
-                    // ถ้าไม่ได้เปิดผ่านแอป LINE ให้โชว์หน้า 3 ปกติ
-                    myStepper.next();
-                }
-
+                myStepper.next(); 
             } else {
                 alert("เกิดข้อผิดพลาด: " + res.message);
                 btnNext.innerText = "Next";
@@ -217,6 +259,28 @@
             btnNext.innerText = "Next";
             btnNext.disabled = false;
         });
+    }
+
+    // ฟังก์ชันใหม่: สั่งส่งข้อความและปิดหน้าต่าง
+    function closeAndSendMessage() {
+        // เช็คว่าเปิดผ่านแอป LINE ไหม
+        if (typeof liff !== 'undefined' && liff.isInClient()) {
+            liff.sendMessages([
+                {
+                    type: 'text',
+                    text: `ยืนยันการจองคิวค่ะ 🎉\nบริการ: ${bookingForm.service}\nวันที่: ${bookingForm.date}\nเวลา: ${bookingForm.time} น.`
+                }
+            ]).then(() => {
+                liff.closeWindow(); // ส่งเสร็จแล้วปิดหน้าต่าง
+            }).catch((error) => {
+                console.error('Error sending message:', error);
+                liff.closeWindow(); // ถึงพังก็ให้ปิดหน้าต่างไปเลย
+            });
+        } else {
+            // ถ้าลูกค้ากดลิงก์ผ่าน Google Chrome หรือ Safari ปกติ
+            alert("บันทึกคิวเรียบร้อยแล้ว!");
+            location.reload(); // รีเฟรชหน้าเว็บเตรียมรับคิวใหม่
+        }
     }
 </script>
 

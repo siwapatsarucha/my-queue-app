@@ -90,13 +90,21 @@
     const LIFF_ID = "2011391523-fqHvpw34";
 
     let shopData = {};
-    let bookingForm = { phone: '', date: '', service: '', time: '' };
+    let bookingForm = { phone: '', date: '', service: '', time: '', lineUserId: '' };
     let myStepper;
 
     document.addEventListener("DOMContentLoaded", () => {
-        // 1. เชื่อมต่อ LIFF
+        // 1. เชื่อมต่อ LIFF และดึงข้อมูลโปรไฟล์
         liff.init({ liffId: LIFF_ID })
-            .then(() => console.log("LIFF Initialized"))
+            .then(() => {
+                console.log("LIFF Initialized");
+                // ถ้าเปิดผ่านแอป LINE ให้ดึง LINE ID มาเก็บไว้
+                if (liff.isInClient() || liff.isLoggedIn()) {
+                    liff.getProfile().then(profile => {
+                        bookingForm.lineUserId = profile.userId;
+                    }).catch(err => console.error("Error getting profile:", err));
+                }
+            })
             .catch((err) => console.error("LIFF Init Error: ", err));
 
         // 2. สร้าง Stepper

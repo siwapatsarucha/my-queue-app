@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการเวลาและคิว (Admin)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Kanit', 'sans-serif'] },
+                    colors: { primary: '#4a88f7', primaryHover: '#3b76d9' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 flex justify-center m-0 p-0 font-sans">
+
+<!-- หน้าจอ Loading -->
+<div id="loading-overlay" class="fixed inset-0 bg-white z-50 flex flex-col justify-center items-center">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+    <p class="text-gray-500" id="loading-text">กำลังโหลดข้อมูลระบบ...</p>
+</div>
+
+<!-- โครงสร้างหลัก -->
+<div class="w-full max-w-[400px] min-h-screen bg-gray-50 relative flex flex-col">
+    <!-- Header -->
+    <div class="bg-primary p-5 shadow-md text-center sticky top-0 z-10 flex justify-between items-center">
+        <h1 class="text-xl font-medium text-white m-0">ตั้งค่ารอบเวลา (Admin)</h1>
+        <button onclick="loadData()" class="text-white text-sm bg-blue-600 px-3 py-1 rounded-full hover:bg-blue-700">รีเฟรช</button>
+    </div>
+
+    <!-- รายการเวลา -->
+    <div class="p-5 flex-grow pb-[120px]">
+        <div class="flex justify-between items-end mb-4">
+            <p class="text-sm text-gray-600">แก้ไขรอบเวลาและจำนวนคิวที่รับได้</p>
+            <button onclick="addTimeSlot()" class="text-primary text-sm font-medium hover:underline">+ เพิ่มรอบ</button>
+        </div>
+        
+        <div id="times-list" class="flex flex-col gap-3">
+            <!-- จะใช้ JavaScript เติมกล่องแก้ไขเวลาลงในนี้ -->
+        </div>
+    </div>
+
+    <!-- Bottom Actions -->
+    <div class="fixed bottom-0 left-0 w-full p-5 bg-white box-border flex justify-center border-t border-gray-200">
+        <div class="w-full max-w-[400px]">
+            <button onclick="saveAdminTimes()" class="w-full p-4 bg-primary text-white rounded-xl text-lg shadow-[0_4px_6px_rgba(74,136,247,0.2)] hover:bg-primaryHover transition-colors font-medium">บันทึกการเปลี่ยนแปลง</button>
+        </div>
+    </div>
+</div>
+
+<!-- เรียกใช้ LIFF SDK -->
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<script>
+    // ⚠️ ใส่ Web App URL อันล่าสุดของคุณ
+    const API_URL = "วาง_WEB_APP_URL_ของคุณที่นี่"; 
+    
+    // ⚠️ สร้าง LIFF ID ใหม่สำหรับหน้า Admin แล้วนำมาใส่
+    const LIFF_ID = "วาง_LIFF_ID_ADMIN_ของคุณที่นี่";
+
+    let timesData = [];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // เชื่อมต่อ LIFF เพื่อความเสถียรเมื่ออยู่ในแอป
+        liff.init({ liffId: LIFF_ID })
+            .then(() => {
+                loadData();
+            })
+            .catch((err) => {
+                console.error("LIFF Init Error: ", err);
+                loadData(); // ถึง error ก็ให้พยายามโหลดข้อมูล
+            });
+    });
+
+    // โหลดข้อมูลจาก Google Sheets
+    function loadData() {
+        showLoading("กำลังโหลดข้อมูลระบบ...");
+        fetch(API_URL + "?action=getShopData")
+            .then(response => response.json())
+            .then(data => {
+                timesData = data.times || [];
+                renderTimesList();
+                hideLoading();
+            })
+            .catch(error => {
+                console.error("Error loading data:", error);
+                alert("ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่");
+                hideLoading();
+            });
+    }
+
+    // วาดกล่องแก้ไขข้อมูล
+    function renderTimesList() {
+        const container = document.getElementById('times-list');
+        container.innerHTML = '';
+
+        if (timesData.length === 0) {
+            container.innerHTML = `<p class="text-center text-gray-400 mt-5">ยังไม่มีรอบเวลา กดเพิ่มรอบได้เลยครับ</p>`;
+            return;
+        }
+
+        timesData.forEach((t, index) => {
+            const card = document.createElement('div');
+            card.className = "flex items-center gap-2 bg-white p-4 rounded-xl shadow-sm border border-gray-100";
+            card.innerHTML = `
+                <div class="flex-1">
+                    <label class="text-[11px] text-gray-500 mb-1 block">รอบเวลา (เช่น 13.00-14.00น.)</label>
+                    <input type="text" value="${t.timeStr}" onchange="updateTimeStr(${index}, this.value)" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-primary text-sm text-gray-700">
+                </div>
+                <div class="w-[70px]">
+                    <label class="text-[11px] text-gray-500 mb-1 block text-center">รับ (คิว)</label>
+                    <input type="number" value="${t.maxQueue}" onchange="updateMaxQueue(${index}, this.value)" class="w-full border border-gray-300 rounded-lg px-2 py-2 outline-none focus:border-primary text-sm text-center text-gray-700" min="1">
+                </div>
+                <button onclick="removeTimeSlot(${index})" class="mt-5 text-red-400 hover:text-red-600 p-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // ฟังก์ชันจัดการ Array
+    function updateTimeStr(index, val) { timesData[index].timeStr = val; }
+    function updateMaxQueue(index, val) { timesData[index].maxQueue = parseInt(val) || 1; }
+    
+    function addTimeSlot() {
+        timesData.push({ timeStr: "00.00-00.00น.", maxQueue: 1 });
+        renderTimesList();
+    }
+
+    function removeTimeSlot(index) {
+        if(confirm("ต้องการลบรอบเวลานี้ใช่หรือไม่?")) {
+            timesData.splice(index, 1);
+            renderTimesList();
+        }
+    }
+
+    // ส่งข้อมูลไปบันทึก
+    function saveAdminTimes() {
+        // ตรวจสอบความถูกต้องก่อนส่ง
+        if(timesData.length === 0) {
+            alert("กรุณาเพิ่มรอบเวลาอย่างน้อย 1 รอบ");
+            return;
+        }
+        
+        let hasEmpty = timesData.some(t => t.timeStr.trim() === "");
+        if(hasEmpty) {
+            alert("กรุณากรอกชื่อรอบเวลาให้ครบทุกช่อง");
+            return;
+        }
+
+        showLoading("กำลังบันทึกข้อมูล...");
+
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'updateTimes',
+                data: timesData
+            })
+        })
+        .then(response => response.json())
+        .then(res => {
+            if(res.status === "success") {
+                alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
+                if (liff.isInClient()) {
+                    liff.closeWindow(); // ปิดแอปกลับไปหน้าแชท
+                } else {
+                    hideLoading();
+                }
+            } else {
+                alert("เกิดข้อผิดพลาด: " + res.message);
+                hideLoading();
+            }
+        })
+        .catch(error => {
+            console.error("Error saving data:", error);
+            alert("บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่");
+            hideLoading();
+        });
+    }
+
+    function showLoading(text) {
+        document.getElementById('loading-text').innerText = text;
+        document.getElementById('loading-overlay').classList.remove('hidden');
+    }
+
+    function hideLoading() {
+        document.getElementById('loading-overlay').classList.add('hidden');
+    }
+</script>
+</body>
+</html>

@@ -58,23 +58,41 @@
 
 <script>
     // ⚠️ ใส่ Web App URL อันล่าสุดของคุณ
-    const API_URL = "วาง_WEB_APP_URL_ของคุณที่นี่"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
     
-    // ⚠️ สร้าง LIFF ID ใหม่สำหรับหน้า Admin แล้วนำมาใส่
-    const LIFF_ID = "วาง_LIFF_ID_ADMIN_ของคุณที่นี่";
+    // ⚠️ ใส่ LIFF ID สำหรับหน้า Admin
+    const LIFF_ID = "2011391523-QXNptpyw";
+
+    // ⚠️ นำ LINE ID ของแอดมินมาวางในเครื่องหมายคำพูดด้านล่างนี้
+    const adminLineIds = [
+        "Uc15870aef60973959938d48d6cdac1da" 
+    ];
 
     let timesData = [];
 
     document.addEventListener("DOMContentLoaded", () => {
-        // เชื่อมต่อ LIFF เพื่อความเสถียรเมื่ออยู่ในแอป
         liff.init({ liffId: LIFF_ID })
             .then(() => {
-                loadData();
+                if (liff.isInClient() || liff.isLoggedIn()) {
+                    liff.getProfile().then(profile => {
+                        // เช็คว่า LINE ID ของคนที่กดตรงกับแอดมินหรือไม่
+                        if (adminLineIds.includes(profile.userId)) {
+                            loadData(); // เป็นแอดมิน ให้โหลดข้อมูล
+                        } else {
+                            // ไม่ใช่แอดมิน ให้บล็อกหน้าจอทันที
+                            document.body.innerHTML = `
+                                <div class="flex flex-col h-screen items-center justify-center bg-gray-100 p-5 text-center">
+                                    <h1 class="text-4xl mb-4">⛔</h1>
+                                    <h2 class="text-xl text-red-500 font-medium mb-2">ไม่มีสิทธิ์เข้าถึง</h2>
+                                    <p class="text-gray-500">หน้านี้สงวนไว้สำหรับผู้ดูแลระบบเท่านั้น</p>
+                                </div>`;
+                        }
+                    }).catch(err => console.error("Error profile:", err));
+                } else {
+                    alert("กรุณาเปิดผ่านแอป LINE บนมือถือ");
+                }
             })
-            .catch((err) => {
-                console.error("LIFF Init Error: ", err);
-                loadData(); // ถึง error ก็ให้พยายามโหลดข้อมูล
-            });
+            .catch((err) => console.error("LIFF Init Error: ", err));
     });
 
     // โหลดข้อมูลจาก Google Sheets

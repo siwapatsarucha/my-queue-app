@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายการคิวลูกค้า (Admin)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Kanit', 'sans-serif'] },
+                    colors: { primary: '#4a88f7' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-[#1a1a1a] flex justify-center m-0 p-0 font-sans">
+
+<div class="w-full max-w-[400px] min-h-screen bg-gray-50 relative flex flex-col pt-10">
+    
+    <h1 class="text-xl font-bold text-center text-black mb-6">คิวที่ลูกค้าจอง</h1>
+
+    <div class="flex justify-center gap-2 mb-8 px-4">
+        <button id="btn-latest" onclick="switchTab('latest')" class="px-5 py-1.5 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors">ล่าสุด</button>
+        <button id="btn-upcoming" onclick="switchTab('upcoming')" class="px-5 py-1.5 rounded-full text-[13px] font-medium bg-primary text-white transition-colors shadow-sm">คิวใกล้เวลา</button>
+        <button id="btn-cancelled" onclick="switchTab('cancelled')" class="px-5 py-1.5 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors">คิวยกเลิก</button>
+    </div>
+
+    <div id="queue-container" class="px-5 pb-10 flex flex-col gap-3">
+        <p class="text-center text-gray-400 mt-10">กำลังโหลดข้อมูล...</p>
+    </div>
+
+</div>
+
+<script>
+    // ⚠️ ใส่ Web App URL อันล่าสุดของคุณที่นี่
+    const API_URL = "วาง_WEB_APP_URL_ของคุณที่นี่"; 
+    
+    let allBookings = [];
+    let currentTab = 'upcoming'; // เริ่มต้นที่หน้า "คิวใกล้เวลา"
+
+    document.addEventListener("DOMContentLoaded", () => {
+        fetchBookings();
+    });
+
+    // ฟังก์ชันดึงข้อมูลจากหลังบ้าน
+    function fetchBookings() {
+        fetch(API_URL + "?action=getAllBookings")
+            .then(response => response.json())
+            .then(data => {
+                allBookings = data;
+                renderQueues(); // วาดข้อมูลลงหน้าจอ
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById('queue-container').innerHTML = `<p class="text-center text-red-400 mt-10">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
+            });
+    }
+
+    // ฟังก์ชันสลับแท็บ
+    function switchTab(tabName) {
+        currentTab = tabName;
+        
+        // รีเซ็ตสีปุ่มทั้งหมดให้เป็นสีเทา
+        const buttons = ['latest', 'upcoming', 'cancelled'];
+        buttons.forEach(btn => {
+            const el = document.getElementById(`btn-${btn}`);
+            el.className = "px-5 py-1.5 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors";
+        });
+
+        // เปลี่ยนสีปุ่มที่ถูกเลือกให้เป็นสีฟ้า
+        const activeBtn = document.getElementById(`btn-${tabName}`);
+        activeBtn.className = "px-5 py-1.5 rounded-full text-[13px] font-medium bg-primary text-white transition-colors shadow-sm";
+
+        renderQueues();
+    }
+
+    // ฟังก์ชันแสดงข้อมูลคิวตามแท็บที่เลือก
+    function renderQueues() {
+        const container = document.getElementById('queue-container');
+        container.innerHTML = ''; // ล้างข้อมูลเก่า
+
+        let filteredBookings = [];
+
+        if (currentTab === 'latest') {
+            // "ล่าสุด": เรียงตามเวลาที่กดจอง (แถวล่าสุดในชีต)
+            filteredBookings = [...allBookings].reverse();
+        } else if (currentTab === 'upcoming') {
+            // "คิวใกล้เวลา": ดึงเฉพาะที่ยังไม่ยกเลิก (รอรับบริการ)
+            filteredBookings = allBookings.filter(b => b.status !== 'ยกเลิก');
+        } else if (currentTab === 'cancelled') {
+            // "คิวยกเลิก": ดึงเฉพาะสถานะยกเลิก
+            filteredBookings = allBookings.filter(b => b.status === 'ยกเลิก');
+        }
+
+        // ถ้าไม่มีข้อมูลเลย ให้แสดงข้อความตามดีไซน์
+        if (filteredBookings.length === 0) {
+            container.innerHTML = `<p class="text-center text-gray-400 mt-10">ยังไม่มีคิวจอง</p>`;
+            return;
+        }
+
+        // วาดการ์ดแสดงข้อมูลแต่ละคิว
+        filteredBookings.forEach(q => {
+            const card = document.createElement('div');
+            card.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-1";
+            
+            let statusColor = q.status === 'ยกเลิก' ? 'text-red-500 bg-red-50' : 'text-green-600 bg-green-50';
+            
+            card.innerHTML = `
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-semibold text-gray-800">${q.date} | ${q.time}</span>
+                    <span class="text-[11px] px-2 py-1 rounded-md ${statusColor}">${q.status}</span>
+                </div>
+                <div class="text-sm text-gray-600 flex justify-between">
+                    <span>บริการ: <span class="text-gray-800">${q.service}</span></span>
+                </div>
+                <div class="text-sm text-gray-600 flex justify-between">
+                    <span>เบอร์โทร: <a href="tel:${q.phone}" class="text-primary">${q.phone}</a></span>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+</script>
+</body>
+</html>

@@ -3,210 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>จัดการเวลาและคิว (Admin)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+    <title>ตั้งค่าคิว (Admin)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: { sans: ['Kanit', 'sans-serif'] },
-                    colors: { primary: '#4a88f7', primaryHover: '#3b76d9' }
+                    colors: { 
+                        primary: '#3b82f6', 
+                        bgGray: '#f8f9fa',
+                        inputBg: '#eef2ff' 
+                    }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-gray-100 flex justify-center m-0 p-0 font-sans">
+<body class="bg-white flex justify-center m-0 p-0 font-sans">
 
 <!-- หน้าจอ Loading -->
-<div id="loading-overlay" class="fixed inset-0 bg-white z-50 flex flex-col justify-center items-center">
+<div id="loading-overlay" class="fixed inset-0 bg-white/90 z-50 flex flex-col justify-center items-center">
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-    <p class="text-gray-500" id="loading-text">กำลังโหลดข้อมูลระบบ...</p>
+    <p class="text-gray-500 text-sm" id="loading-text">กำลังโหลดข้อมูลระบบ...</p>
 </div>
 
 <!-- โครงสร้างหลัก -->
-<div class="w-full max-w-[400px] min-h-screen bg-gray-50 relative flex flex-col">
+<div class="w-full max-w-[400px] min-h-screen bg-white relative flex flex-col">
+    
     <!-- Header -->
-    <div class="bg-primary p-5 shadow-md text-center sticky top-0 z-10 flex justify-between items-center">
-        <h1 class="text-xl font-medium text-white m-0">ตั้งค่ารอบเวลา (Admin)</h1>
-        <button onclick="loadData()" class="text-white text-sm bg-blue-600 px-3 py-1 rounded-full hover:bg-blue-700">รีเฟรช</button>
+    <div class="pt-10 pb-4 px-5 flex items-center justify-between sticky top-0 bg-white z-10">
+        <button onclick="closeApp()" class="w-8 h-8 rounded-full border border-gray-800 flex items-center justify-center hover:bg-gray-100 transition-colors">
+            <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <h1 class="text-[17px] font-medium text-gray-800 m-0 text-center flex-1">ตั้งค่าคิว</h1>
+        <div class="w-8"></div> <!-- Spacer ให้ Header สมดุล -->
     </div>
 
-    <!-- รายการเวลา -->
-    <div class="p-5 flex-grow pb-[120px]">
-        <div class="flex justify-between items-end mb-4">
-            <p class="text-sm text-gray-600">แก้ไขรอบเวลาและจำนวนคิวที่รับได้</p>
-            <button onclick="addTimeSlot()" class="text-primary text-sm font-medium hover:underline">+ เพิ่มรอบ</button>
-        </div>
+    <!-- พื้นที่เนื้อหา -->
+    <div class="px-5 flex-grow pb-[120px] flex flex-col gap-6 mt-2">
         
-        <div id="times-list" class="flex flex-col gap-3">
-            <!-- จะใช้ JavaScript เติมกล่องแก้ไขเวลาลงในนี้ -->
+        <!-- การ์ด 1: รอบเวลาและจำนวนคิว -->
+        <div class="bg-bgGray rounded-3xl p-5 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-sm text-gray-700 font-medium">รอบเวลาและจำนวนคิว</span>
+                <button onclick="addTimeSlot()" class="bg-blue-600 text-white text-[11px] px-3 py-1 rounded-lg flex items-center gap-1 hover:bg-blue-700">
+                    <span>+</span> เพิ่ม
+                </button>
+            </div>
+            <div id="times-list" class="flex flex-col">
+                <!-- ข้อมูลรอบเวลาจะแสดงตรงนี้ -->
+            </div>
         </div>
+
+        <!-- การ์ด 2: ปิดรอบรายวัน -->
+        <div class="bg-bgGray rounded-3xl p-5 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-sm text-gray-700 font-medium">ปิดรอบรายวัน</span>
+                <button onclick="addClosedDay()" class="bg-blue-600 text-white text-[11px] px-3 py-1 rounded-lg flex items-center gap-1 hover:bg-blue-700">
+                    <span>+</span> เพิ่ม
+                </button>
+            </div>
+            <div id="closed-days-list" class="flex flex-col">
+                <!-- ข้อมูลวันหยุดจะแสดงตรงนี้ -->
+            </div>
+        </div>
+
     </div>
 
-    <!-- Bottom Actions -->
-    <div class="fixed bottom-0 left-0 w-full p-5 bg-white box-border flex justify-center border-t border-gray-200">
+    <!-- Bottom Action -->
+    <div class="fixed bottom-0 left-0 w-full p-5 bg-white flex justify-center pb-8">
         <div class="w-full max-w-[400px]">
-            <button onclick="saveAdminTimes()" class="w-full p-4 bg-primary text-white rounded-xl text-lg shadow-[0_4px_6px_rgba(74,136,247,0.2)] hover:bg-primaryHover transition-colors font-medium">บันทึกการเปลี่ยนแปลง</button>
+            <button onclick="saveAdminSettings()" class="w-full py-3.5 bg-[#4285f4] text-white rounded-xl text-[17px] hover:bg-blue-600 transition-colors font-medium shadow-md">
+                บันทึกการเปลี่ยนแปลง
+            </button>
         </div>
     </div>
 </div>
 
-<!-- เรียกใช้ LIFF SDK -->
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <script>
-    // ⚠️ ใส่ Web App URL อันล่าสุดของคุณ
+    // ⚠️ ใส่ Web App URL และ LIFF ID เดิมของคุณ
     const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
-    
-    // ⚠️ ใส่ LIFF ID สำหรับหน้า Admin
     const LIFF_ID = "2011391523-QXNptpyw";
-
-    // ⚠️ นำ LINE ID ของแอดมินมาวางในเครื่องหมายคำพูดด้านล่างนี้
-    const adminLineIds = [
-        "Uc15870aef60973959938d48d6cdac1da" 
-    ];
+    const adminLineIds = ["Uc15870aef60973959938d48d6cdac1da"];
 
     let timesData = [];
+    let closedDaysData = []; // เพิ่ม Array สำหรับเก็บวันปิดบริการ
 
     document.addEventListener("DOMContentLoaded", () => {
         liff.init({ liffId: LIFF_ID })
             .then(() => {
                 if (liff.isInClient() || liff.isLoggedIn()) {
                     liff.getProfile().then(profile => {
-                        // เช็คว่า LINE ID ของคนที่กดตรงกับแอดมินหรือไม่
                         if (adminLineIds.includes(profile.userId)) {
-                            loadData(); // เป็นแอดมิน ให้โหลดข้อมูล
+                            loadData();
                         } else {
-                            // ไม่ใช่แอดมิน ให้บล็อกหน้าจอทันที
                             document.body.innerHTML = `
-                                <div class="flex flex-col h-screen items-center justify-center bg-gray-100 p-5 text-center">
+                                <div class="flex flex-col h-screen items-center justify-center bg-white p-5 text-center">
                                     <h1 class="text-4xl mb-4">⛔</h1>
                                     <h2 class="text-xl text-red-500 font-medium mb-2">ไม่มีสิทธิ์เข้าถึง</h2>
-                                    <p class="text-gray-500">หน้านี้สงวนไว้สำหรับผู้ดูแลระบบเท่านั้น</p>
                                 </div>`;
                         }
-                    }).catch(err => console.error("Error profile:", err));
-                } else {
-                    alert("กรุณาเปิดผ่านแอป LINE บนมือถือ");
+                    });
                 }
             })
-            .catch((err) => console.error("LIFF Init Error: ", err));
+            .catch(err => console.error("LIFF Init Error:", err));
     });
 
-    // โหลดข้อมูลจาก Google Sheets
     function loadData() {
-        showLoading("กำลังโหลดข้อมูลระบบ...");
+        showLoading("กำลังโหลดข้อมูล...");
         fetch(API_URL + "?action=getShopData")
             .then(response => response.json())
             .then(data => {
                 timesData = data.times || [];
+                // สมมติว่ามีข้อมูลวันหยุดถูกส่งมาจากหลังบ้าน (ถ้ายังไม่มีจะเป็น Array ว่างไปก่อน)
+                closedDaysData = data.closedDays || []; 
+                
                 renderTimesList();
+                renderClosedDaysList();
                 hideLoading();
             })
             .catch(error => {
-                console.error("Error loading data:", error);
-                alert("ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่");
+                alert("ไม่สามารถดึงข้อมูลได้");
                 hideLoading();
             });
     }
 
-    // วาดกล่องแก้ไขข้อมูล
+    // --- ส่วนเรนเดอร์: รอบเวลา ---
     function renderTimesList() {
         const container = document.getElementById('times-list');
         container.innerHTML = '';
 
-        if (timesData.length === 0) {
-            container.innerHTML = `<p class="text-center text-gray-400 mt-5">ยังไม่มีรอบเวลา กดเพิ่มรอบได้เลยครับ</p>`;
-            return;
-        }
-
         timesData.forEach((t, index) => {
-            const card = document.createElement('div');
-            card.className = "flex items-center gap-2 bg-white p-4 rounded-xl shadow-sm border border-gray-100";
-            card.innerHTML = `
-                <div class="flex-1">
-                    <label class="text-[11px] text-gray-500 mb-1 block">รอบเวลา (เช่น 13.00-14.00น.)</label>
-                    <input type="text" value="${t.timeStr}" onchange="updateTimeStr(${index}, this.value)" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-primary text-sm text-gray-700">
+            const isLast = index === timesData.length - 1;
+            const borderClass = isLast ? "" : "border-b border-gray-200";
+            
+            container.innerHTML += `
+                <div class="flex items-center justify-between py-3 ${borderClass}">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <input type="text" value="${t.timeStr}" onchange="timesData[${index}].timeStr = this.value" class="w-[110px] bg-transparent text-sm text-gray-700 outline-none">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="number" value="${t.maxQueue}" onchange="timesData[${index}].maxQueue = parseInt(this.value)||1" class="w-8 py-1 bg-inputBg rounded-md text-center text-sm font-medium text-gray-700 outline-none" min="1">
+                        <span class="text-[12px] text-gray-700 mr-2">จำนวนคิว</span>
+                        <button onclick="removeTimeSlot(${index})" class="text-red-500 hover:text-red-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
                 </div>
-                <div class="w-[70px]">
-                    <label class="text-[11px] text-gray-500 mb-1 block text-center">รับ (คิว)</label>
-                    <input type="number" value="${t.maxQueue}" onchange="updateMaxQueue(${index}, this.value)" class="w-full border border-gray-300 rounded-lg px-2 py-2 outline-none focus:border-primary text-sm text-center text-gray-700" min="1">
-                </div>
-                <button onclick="removeTimeSlot(${index})" class="mt-5 text-red-400 hover:text-red-600 p-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                </button>
             `;
-            container.appendChild(card);
         });
     }
 
-    // ฟังก์ชันจัดการ Array
-    function updateTimeStr(index, val) { timesData[index].timeStr = val; }
-    function updateMaxQueue(index, val) { timesData[index].maxQueue = parseInt(val) || 1; }
-    
     function addTimeSlot() {
         timesData.push({ timeStr: "00.00-00.00น.", maxQueue: 1 });
         renderTimesList();
     }
-
     function removeTimeSlot(index) {
-        if(confirm("ต้องการลบรอบเวลานี้ใช่หรือไม่?")) {
-            timesData.splice(index, 1);
-            renderTimesList();
-        }
+        timesData.splice(index, 1);
+        renderTimesList();
     }
 
-    // ส่งข้อมูลไปบันทึก
-    function saveAdminTimes() {
-        // ตรวจสอบความถูกต้องก่อนส่ง
-        if(timesData.length === 0) {
-            alert("กรุณาเพิ่มรอบเวลาอย่างน้อย 1 รอบ");
-            return;
-        }
-        
-        let hasEmpty = timesData.some(t => t.timeStr.trim() === "");
-        if(hasEmpty) {
-            alert("กรุณากรอกชื่อรอบเวลาให้ครบทุกช่อง");
-            return;
-        }
+    // --- ส่วนเรนเดอร์: ปิดรอบรายวัน ---
+    function renderClosedDaysList() {
+        const container = document.getElementById('closed-days-list');
+        container.innerHTML = '';
 
+        closedDaysData.forEach((d, index) => {
+            const isLast = index === closedDaysData.length - 1;
+            const borderClass = isLast ? "" : "border-b border-gray-200";
+            
+            container.innerHTML += `
+                <div class="flex items-center justify-between py-3 ${borderClass}">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span class="text-[13px] text-gray-700">วันที่</span>
+                        <input type="date" value="${d.dateStr}" onchange="closedDaysData[${index}].dateStr = this.value" class="w-[120px] bg-inputBg px-2 py-0.5 rounded-md text-sm text-gray-700 outline-none border-none cursor-pointer">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-[12px] text-gray-700">ปิดบริการ</span>
+                        <button onclick="removeClosedDay(${index})" class="text-red-500 hover:text-red-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function addClosedDay() {
+        const today = new Date().toISOString().split('T')[0]; // ค่าเริ่มต้นเป็นวันปัจจุบัน
+        closedDaysData.push({ dateStr: today });
+        renderClosedDaysList();
+    }
+    function removeClosedDay(index) {
+        closedDaysData.splice(index, 1);
+        renderClosedDaysList();
+    }
+
+    // --- บันทึกข้อมูล ---
+    function saveAdminSettings() {
         showLoading("กำลังบันทึกข้อมูล...");
 
+        // แนบข้อมูลไปทั้ง 2 ส่วน: times และ closedDays
         fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({
                 action: 'updateTimes',
-                data: timesData
+                data: timesData,
+                closedDays: closedDaysData // ส่งตัวแปรวันหยุดไปด้วย
             })
         })
         .then(response => response.json())
         .then(res => {
             if(res.status === "success") {
                 alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
-                if (liff.isInClient()) {
-                    liff.closeWindow(); // ปิดแอปกลับไปหน้าแชท
-                } else {
-                    hideLoading();
-                }
             } else {
                 alert("เกิดข้อผิดพลาด: " + res.message);
-                hideLoading();
             }
+            hideLoading();
         })
         .catch(error => {
-            console.error("Error saving data:", error);
-            alert("บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่");
+            alert("บันทึกข้อมูลไม่สำเร็จ");
             hideLoading();
         });
+    }
+
+    function closeApp() {
+        if (liff.isInClient()) {
+            liff.closeWindow();
+        }
     }
 
     function showLoading(text) {
         document.getElementById('loading-text').innerText = text;
         document.getElementById('loading-overlay').classList.remove('hidden');
     }
-
     function hideLoading() {
         document.getElementById('loading-overlay').classList.add('hidden');
     }

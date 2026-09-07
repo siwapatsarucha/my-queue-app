@@ -40,19 +40,18 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
     
     let allBookings = [];
-    let currentTab = 'upcoming'; // เริ่มต้นที่หน้า "คิวใกล้เวลา"
+    let currentTab = 'upcoming'; 
 
     document.addEventListener("DOMContentLoaded", () => {
         fetchBookings();
     });
 
-    // ฟังก์ชันดึงข้อมูลจากหลังบ้าน
     function fetchBookings() {
         fetch(API_URL + "?action=getAllBookings")
             .then(response => response.json())
             .then(data => {
                 allBookings = data;
-                renderQueues(); // วาดข้อมูลลงหน้าจอ
+                renderQueues(); 
             })
             .catch(error => {
                 console.error("Error:", error);
@@ -60,49 +59,69 @@
             });
     }
 
-    // ฟังก์ชันสลับแท็บ
     function switchTab(tabName) {
         currentTab = tabName;
         
-        // รีเซ็ตสีปุ่มทั้งหมดให้เป็นสีเทา
         const buttons = ['latest', 'upcoming', 'cancelled'];
         buttons.forEach(btn => {
             const el = document.getElementById(`btn-${btn}`);
             el.className = "px-5 py-1.5 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors";
         });
 
-        // เปลี่ยนสีปุ่มที่ถูกเลือกให้เป็นสีฟ้า
         const activeBtn = document.getElementById(`btn-${tabName}`);
         activeBtn.className = "px-5 py-1.5 rounded-full text-[13px] font-medium bg-primary text-white transition-colors shadow-sm";
 
         renderQueues();
     }
 
-    // ฟังก์ชันแสดงข้อมูลคิวตามแท็บที่เลือก
+    // ⚠️ เพิ่มฟังก์ชันเช็คเวลาว่า "เลยเวลาหรือยัง?"
+    function isTimePassed(dateStr, timeStr) {
+        if (!dateStr || !timeStr) return false;
+
+        const dateParts = dateStr.split('/');
+        if (dateParts.length === 3) {
+            const qDay = parseInt(dateParts[0], 10);
+            const qMonth = parseInt(dateParts[1], 10) - 1; 
+            const qYear = parseInt(dateParts[2], 10);
+            
+            const timeMatch = timeStr.match(/(\d{1,2})[.:](\d{2})/);
+            if (timeMatch) {
+                const qHour = parseInt(timeMatch[1], 10);
+                const qMinute = parseInt(timeMatch[2], 10);
+                
+                const queueDateTime = new Date(qYear, qMonth, qDay, qHour, qMinute);
+                const now = new Date();
+                
+                return now > queueDateTime; // ถ้าเวลาปัจจุบันมากกว่าคิว = เลยเวลาแล้ว (true)
+            }
+        }
+        return false;
+    }
+
     function renderQueues() {
         const container = document.getElementById('queue-container');
-        container.innerHTML = ''; // ล้างข้อมูลเก่า
+        container.innerHTML = ''; 
 
         let filteredBookings = [];
 
         if (currentTab === 'latest') {
-            // "ล่าสุด": เรียงตามเวลาที่กดจอง (แถวล่าสุดในชีต)
-            filteredBookings = [...allBookings].reverse();
+            // ⚠️ "ล่าสุด": กรองคิวที่ "ยังไม่เลยเวลา" เท่านั้น และกลับด้านเพื่อให้คิวจองล่าสุดขึ้นก่อน
+            filteredBookings = allBookings
+                .filter(b => !isTimePassed(b.date, b.time))
+                .reverse();
         } else if (currentTab === 'upcoming') {
-            // "คิวใกล้เวลา": ดึงเฉพาะที่ยังไม่ยกเลิก (รอรับบริการ)
-            filteredBookings = allBookings.filter(b => b.status !== 'ยกเลิก');
+            // ⚠️ "คิวใกล้เวลา": กรองคิวที่ "ยังไม่ยกเลิก" และ "ยังไม่เลยเวลา"
+            filteredBookings = allBookings.filter(b => b.status !== 'ยกเลิก' && !isTimePassed(b.date, b.time));
         } else if (currentTab === 'cancelled') {
-            // "คิวยกเลิก": ดึงเฉพาะสถานะยกเลิก
+            // "คิวยกเลิก": ดึงเฉพาะสถานะยกเลิก (คงไว้แบบเดิมเพื่อเก็บประวัติ)
             filteredBookings = allBookings.filter(b => b.status === 'ยกเลิก');
         }
 
-        // ถ้าไม่มีข้อมูลเลย ให้แสดงข้อความตามดีไซน์
         if (filteredBookings.length === 0) {
             container.innerHTML = `<p class="text-center text-gray-400 mt-10">ยังไม่มีคิวจอง</p>`;
             return;
         }
 
-        // วาดการ์ดแสดงข้อมูลแต่ละคิว
         filteredBookings.forEach(q => {
             const card = document.createElement('div');
             card.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-1";

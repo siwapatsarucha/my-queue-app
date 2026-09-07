@@ -30,7 +30,6 @@
             .time-slot.disabled { @apply line-through text-gray-400 bg-gray-50 cursor-not-allowed; pointer-events: none; }
             .cal-date { @apply w-10 h-10 rounded-full flex justify-center items-center text-base cursor-pointer; }
             .cal-date.active { @apply bg-primary text-white shadow-md; }
-            /* ⚠️ เพิ่ม CSS สำหรับวันที่ร้านปิด */
             .cal-date.disabled { @apply bg-transparent text-gray-300 cursor-not-allowed; pointer-events: none; }
         }
     </style>
@@ -138,16 +137,12 @@
         renderServices();
         renderCalendar();
         
-        // ⚠️ หารายชื่อวันที่ปิดร้านทั้งหมดมาเก็บไว้ใน Array
         const closedDates = shopData.closedDays ? shopData.closedDays.map(cd => cd.dateStr) : [];
-        
-        // ⚠️ หา "วันแรกสุด" ที่ร้านเปิด (ไม่ได้อยู่ใน closedDates) แล้วเลือกให้ลูกค้าอัตโนมัติ
         const firstAvailableDate = shopData.dates.find(d => !closedDates.includes(d.fullDate));
         
         if (firstAvailableDate) {
             selectDate(firstAvailableDate.fullDate);
         } else {
-            // ถ้าปิดทั้ง 7 วันเลย
             document.getElementById('times-container').innerHTML = '<p class="w-full text-center text-red-500">ขออภัยค่ะ ร้านปิดให้บริการในสัปดาห์นี้ทั้งหมด</p>';
         }
     }
@@ -169,7 +164,6 @@
         const container = document.getElementById('calendar-container');
         container.innerHTML = '';
         
-        // ดึงวันที่ปิดร้านมาเช็ค
         const closedDates = shopData.closedDays ? shopData.closedDays.map(cd => cd.dateStr) : [];
 
         shopData.dates.forEach(d => {
@@ -177,13 +171,11 @@
             const wrapper = document.createElement('div');
             
             if (isClosed) {
-                // ⚠️ ถ้าเป็นวันปิดร้าน ให้แสดงสีแดงและใส่คลาส disabled ไม่ให้กดได้
                 wrapper.innerHTML = `
                     <div class="text-[11px] text-red-400 mb-1 font-medium">ปิด</div>
                     <div class="cal-date disabled">${d.dateNum}</div>
                 `;
             } else {
-                // ถ้าเปิดปกติ
                 wrapper.innerHTML = `
                     <div class="text-xs text-gray-500 mb-1">${d.dayStr}</div>
                     <div class="cal-date" id="date-${d.fullDate}" onclick="selectDate('${d.fullDate}')">${d.dateNum}</div>
@@ -205,7 +197,6 @@
                         now.getMonth() === selectedDate.getMonth() &&
                         now.getDate() === selectedDate.getDate();
 
-        // ⚠️ เช็คก่อนว่าวันนั้นมีข้อมูลเวลาให้จองไหม
         if (!shopData.times || shopData.times.length === 0) {
             container.innerHTML = '<p class="w-full text-center text-gray-400 my-4">ไม่มีรอบเวลาให้บริการ</p>';
             return;
@@ -213,8 +204,14 @@
 
         shopData.times.forEach(t => {
             const bookedCount = dateBookings[t.timeStr] || 0;
-            let isDisabled = bookedCount >= t.maxQueue; 
+            
+            // ⚠️ 1. ตรวจสอบว่าแอดมินปิดเวลานี้ไว้หรือไม่ (isActive === false หรือข้อความ "FALSE")
+            const isClosedByAdmin = t.isActive === false || String(t.isActive).toUpperCase() === 'FALSE';
+            
+            // ⚠️ 2. คิวจะถูกล็อก (Disabled) ถ้าคิวเต็ม "หรือ" แอดมินปิดเวลาไว้
+            let isDisabled = (bookedCount >= t.maxQueue) || isClosedByAdmin; 
 
+            // ⚠️ 3. ถ้าเป็นวันนี้ ให้ตรวจสอบเพิ่มเติมว่าเวลาผ่านไปหรือยัง
             if (isToday && !isDisabled) {
                 const timeMatch = t.timeStr.match(/(\d{1,2})[.:](\d{2})/);
                 if (timeMatch) {

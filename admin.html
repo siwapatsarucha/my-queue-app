@@ -91,7 +91,7 @@
     const adminLineIds = ["Uc15870aef60973959938d48d6cdac1da"];
 
     let timesData = [];
-    let closedDaysData = []; // เพิ่ม Array สำหรับเก็บวันปิดบริการ
+    let closedDaysData = [];
 
     document.addEventListener("DOMContentLoaded", () => {
         liff.init({ liffId: LIFF_ID })
@@ -119,7 +119,6 @@
             .then(response => response.json())
             .then(data => {
                 timesData = data.times || [];
-                // สมมติว่ามีข้อมูลวันหยุดถูกส่งมาจากหลังบ้าน (ถ้ายังไม่มีจะเป็น Array ว่างไปก่อน)
                 closedDaysData = data.closedDays || []; 
                 
                 renderTimesList();
@@ -145,7 +144,7 @@
                 <div class="flex items-center justify-between py-3 ${borderClass}">
                     <div class="flex items-center gap-2">
                         <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <input type="text" value="${t.timeStr}" onchange="timesData[${index}].timeStr = this.value" class="w-[110px] bg-transparent text-sm text-gray-700 outline-none">
+                        <input type="text" value="${t.timeStr}" placeholder="เช่น 18.00น." onchange="timesData[${index}].timeStr = this.value" class="w-[110px] bg-transparent text-sm text-gray-700 outline-none">
                     </div>
                     <div class="flex items-center gap-2">
                         <input type="number" value="${t.maxQueue}" onchange="timesData[${index}].maxQueue = parseInt(this.value)||1" class="w-8 py-1 bg-inputBg rounded-md text-center text-sm font-medium text-gray-700 outline-none" min="1">
@@ -159,10 +158,12 @@
         });
     }
 
+    // ⚠️ เปลี่ยนค่าเริ่มต้นเวลาเพิ่มรอบใหม่เป็นแบบสั้น
     function addTimeSlot() {
-        timesData.push({ timeStr: "00.00-00.00น.", maxQueue: 1 });
+        timesData.push({ timeStr: "00.00น.", maxQueue: 1 });
         renderTimesList();
     }
+    
     function removeTimeSlot(index) {
         timesData.splice(index, 1);
         renderTimesList();
@@ -196,10 +197,11 @@
     }
 
     function addClosedDay() {
-        const today = new Date().toISOString().split('T')[0]; // ค่าเริ่มต้นเป็นวันปัจจุบัน
+        const today = new Date().toISOString().split('T')[0]; 
         closedDaysData.push({ dateStr: today });
         renderClosedDaysList();
     }
+    
     function removeClosedDay(index) {
         closedDaysData.splice(index, 1);
         renderClosedDaysList();
@@ -209,13 +211,12 @@
     function saveAdminSettings() {
         showLoading("กำลังบันทึกข้อมูล...");
 
-        // แนบข้อมูลไปทั้ง 2 ส่วน: times และ closedDays
         fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({
                 action: 'updateTimes',
                 data: timesData,
-                closedDays: closedDaysData // ส่งตัวแปรวันหยุดไปด้วย
+                closedDays: closedDaysData 
             })
         })
         .then(response => response.json())
@@ -243,6 +244,7 @@
         document.getElementById('loading-text').innerText = text;
         document.getElementById('loading-overlay').classList.remove('hidden');
     }
+    
     function hideLoading() {
         document.getElementById('loading-overlay').classList.add('hidden');
     }

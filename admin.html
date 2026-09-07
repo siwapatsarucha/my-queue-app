@@ -33,7 +33,7 @@
 <div class="w-full max-w-[400px] min-h-screen bg-white relative flex flex-col">
     
     <!-- Header -->
-    <div class="pt-10 pb-4 px-5 flex items-center justify-between sticky top-0 bg-white z-10">
+    <div class="pt-10 pb-4 px-5 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm">
         <button onclick="closeApp()" class="w-8 h-8 rounded-full border border-gray-800 flex items-center justify-center hover:bg-gray-100 transition-colors">
             <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         </button>
@@ -42,13 +42,13 @@
     </div>
 
     <!-- พื้นที่เนื้อหา -->
-    <div class="px-5 flex-grow pb-[120px] flex flex-col gap-6 mt-2">
+    <div class="px-5 flex-grow pb-[120px] flex flex-col gap-6 mt-4">
         
         <!-- การ์ด 1: รอบเวลาและจำนวนคิว -->
         <div class="bg-bgGray rounded-3xl p-5 shadow-sm">
             <div class="flex justify-between items-center mb-4">
                 <span class="text-sm text-gray-700 font-medium">รอบเวลาและจำนวนคิว</span>
-                <button onclick="addTimeSlot()" class="bg-blue-600 text-white text-[11px] px-3 py-1 rounded-lg flex items-center gap-1 hover:bg-blue-700">
+                <button onclick="addTimeSlot()" class="bg-blue-600 text-white text-[11px] px-3 py-1 rounded-lg flex items-center gap-1 hover:bg-blue-700 transition-colors">
                     <span>+</span> เพิ่ม
                 </button>
             </div>
@@ -61,7 +61,7 @@
         <div class="bg-bgGray rounded-3xl p-5 shadow-sm">
             <div class="flex justify-between items-center mb-4">
                 <span class="text-sm text-gray-700 font-medium">ปิดรอบรายวัน</span>
-                <button onclick="addClosedDay()" class="bg-blue-600 text-white text-[11px] px-3 py-1 rounded-lg flex items-center gap-1 hover:bg-blue-700">
+                <button onclick="addClosedDay()" class="bg-blue-600 text-white text-[11px] px-3 py-1 rounded-lg flex items-center gap-1 hover:bg-blue-700 transition-colors">
                     <span>+</span> เพิ่ม
                 </button>
             </div>
@@ -73,7 +73,7 @@
     </div>
 
     <!-- Bottom Action -->
-    <div class="fixed bottom-0 left-0 w-full p-5 bg-white flex justify-center pb-8">
+    <div class="fixed bottom-0 left-0 w-full p-5 bg-white flex justify-center pb-8 border-t border-gray-100">
         <div class="w-full max-w-[400px]">
             <button onclick="saveAdminSettings()" class="w-full py-3.5 bg-[#4285f4] text-white rounded-xl text-[17px] hover:bg-blue-600 transition-colors font-medium shadow-md">
                 บันทึกการเปลี่ยนแปลง
@@ -85,13 +85,12 @@
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <script>
-    // ⚠️ ใส่ Web App URL และ LIFF ID เดิมของคุณ
     const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
     const LIFF_ID = "2011391523-QXNptpyw";
     const adminLineIds = ["Uc15870aef60973959938d48d6cdac1da"];
 
     let timesData = [];
-    let closedDaysData = [];
+    let closedDaysData = []; 
 
     document.addEventListener("DOMContentLoaded", () => {
         liff.init({ liffId: LIFF_ID })
@@ -131,6 +130,23 @@
             });
     }
 
+    // --- ฟังก์ชันแปลงเวลาสำหรับ Input ---
+    // 1. แปลง "18.00น." เป็น "18:00" สำหรับแสดงใน <input type="time">
+    function timeToInputFormat(timeStr) {
+        if (!timeStr) return "10:00";
+        const match = timeStr.match(/(\d{1,2})[.:](\d{2})/);
+        if (match) {
+            return `${match[1].padStart(2, '0')}:${match[2].padStart(2, '0')}`;
+        }
+        return "10:00"; // ค่าเริ่มต้นถ้าอ่านค่าไม่ได้
+    }
+
+    // 2. แปลง "18:00" กลับเป็น "18.00น." เพื่อบันทึกลงระบบ
+    function inputToTimeFormat(inputVal) {
+        if (!inputVal) return "10.00น.";
+        return inputVal.replace(':', '.') + 'น.';
+    }
+
     // --- ส่วนเรนเดอร์: รอบเวลา ---
     function renderTimesList() {
         const container = document.getElementById('times-list');
@@ -140,11 +156,16 @@
             const isLast = index === timesData.length - 1;
             const borderClass = isLast ? "" : "border-b border-gray-200";
             
+            // ใช้ฟังก์ชันแปลงเวลาเพื่อให้แสดงใน input ได้
+            let timeVal = timeToInputFormat(t.timeStr);
+            
             container.innerHTML += `
                 <div class="flex items-center justify-between py-3 ${borderClass}">
                     <div class="flex items-center gap-2">
                         <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <input type="text" value="${t.timeStr}" placeholder="เช่น 18.00น." onchange="timesData[${index}].timeStr = this.value" class="w-[110px] bg-transparent text-sm text-gray-700 outline-none">
+                        
+                        <!-- เปลี่ยนเป็น input type="time" ตรงนี้ -->
+                        <input type="time" value="${timeVal}" onchange="timesData[${index}].timeStr = inputToTimeFormat(this.value)" class="w-[110px] bg-transparent text-sm text-gray-700 outline-none cursor-pointer">
                     </div>
                     <div class="flex items-center gap-2">
                         <input type="number" value="${t.maxQueue}" onchange="timesData[${index}].maxQueue = parseInt(this.value)||1" class="w-8 py-1 bg-inputBg rounded-md text-center text-sm font-medium text-gray-700 outline-none" min="1">
@@ -158,12 +179,10 @@
         });
     }
 
-    // ⚠️ เปลี่ยนค่าเริ่มต้นเวลาเพิ่มรอบใหม่เป็นแบบสั้น
     function addTimeSlot() {
-        timesData.push({ timeStr: "00.00น.", maxQueue: 1 });
+        timesData.push({ timeStr: "10.00น.", maxQueue: 1 });
         renderTimesList();
     }
-    
     function removeTimeSlot(index) {
         timesData.splice(index, 1);
         renderTimesList();
@@ -201,7 +220,6 @@
         closedDaysData.push({ dateStr: today });
         renderClosedDaysList();
     }
-    
     function removeClosedDay(index) {
         closedDaysData.splice(index, 1);
         renderClosedDaysList();
@@ -244,7 +262,6 @@
         document.getElementById('loading-text').innerText = text;
         document.getElementById('loading-overlay').classList.remove('hidden');
     }
-    
     function hideLoading() {
         document.getElementById('loading-overlay').classList.add('hidden');
     }

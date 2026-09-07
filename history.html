@@ -4,129 +4,201 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>คิวของฉัน</title>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: { sans: ['Kanit', 'sans-serif'] },
-                    colors: { primary: '#4a88f7', grayLight: '#f3f4f6' }
+                    colors: { primary: '#4a88f7', grayLight: '#f8f9fa' }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-gray-200 flex justify-center m-0 p-0 font-sans">
+<body class="bg-gray-100 flex justify-center m-0 p-0 font-sans">
 
 <!-- หน้าจอ Loading -->
-<div id="loading-overlay" class="fixed inset-0 bg-white z-50 flex flex-col justify-center items-center">
-    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-    <p class="text-gray-500" id="loading-text">กำลังโหลดข้อมูลคิวของคุณ...</p>
+<div id="loading-overlay" class="fixed inset-0 bg-white/90 z-50 flex flex-col justify-center items-center">
+    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mb-4"></div>
+    <p class="text-gray-500 text-sm" id="loading-text">กำลังโหลดข้อมูล...</p>
 </div>
 
 <!-- โครงสร้างหลัก -->
-<div class="w-full max-w-[400px] min-h-screen bg-gray-50 relative flex flex-col overflow-x-hidden">
-    <!-- Header -->
-    <div class="bg-white p-5 shadow-sm text-center sticky top-0 z-10">
-        <h1 class="text-xl font-medium text-gray-800 m-0">คิวของฉัน</h1>
+<div class="w-full max-w-[400px] min-h-screen bg-grayLight relative flex flex-col">
+    
+    <!-- Header แบบใหม่ -->
+    <div class="pt-10 pb-2 px-5 flex items-center justify-between bg-white z-10">
+        <button onclick="closeApp()" class="w-8 h-8 rounded-full border border-gray-800 flex items-center justify-center hover:bg-gray-100 transition-colors">
+            <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <h1 class="text-[17px] font-medium text-gray-800 m-0 text-center flex-1">คิวของฉัน</h1>
+        <div class="w-8"></div>
+    </div>
+
+    <!-- แถบเมนู Tabs -->
+    <div class="flex justify-center gap-2 pb-4 px-4 bg-white shadow-sm border-b border-gray-100 sticky top-[76px] z-10">
+        <button id="tab-latest" onclick="switchTab('latest')" class="px-4 py-1.5 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400">ล่าสุด</button>
+        <button id="tab-upcoming" onclick="switchTab('upcoming')" class="px-4 py-1.5 rounded-full text-[13px] font-medium bg-primary text-white shadow-sm">ใกล้ถึงเวลา</button>
+        <button id="tab-cancelled" onclick="switchTab('cancelled')" class="px-4 py-1.5 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400">คิวยกเลิก</button>
+        <button id="tab-all" onclick="switchTab('all')" class="px-4 py-1.5 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400">ทั้งหมด</button>
     </div>
 
     <!-- รายการคิว -->
-    <div id="queue-list" class="p-5 flex flex-col gap-4">
-        <!-- จะใช้ JavaScript เติมการ์ดคิวลงในนี้ -->
+    <div id="queue-list" class="p-5 flex flex-col gap-4 pb-[100px]">
+        <!-- การ์ดคิวจะถูกเติมที่นี่ -->
     </div>
 </div>
 
-<!-- เรียกใช้ LIFF SDK -->
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
 <script>
-    // ⚠️ ใส่ Web App URL อันใหม่ที่เพิ่ง Deploy
     const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
-    
-    // ⚠️ ใส่ LIFF ID สำหรับหน้าประวัติ (ต้องสร้าง LIFF ใหม่ อ่านสเตป 2 ด้านล่าง)
     const LIFF_ID = "2011391523-5EBKsHZY";
 
     let lineUserId = "";
+    let allQueues = [];
+    let currentTab = 'upcoming';
 
     document.addEventListener("DOMContentLoaded", () => {
-        // 1. เชื่อมต่อ LIFF เพื่อดึง LINE ID
         liff.init({ liffId: LIFF_ID })
             .then(() => {
                 if (liff.isInClient() || liff.isLoggedIn()) {
                     liff.getProfile().then(profile => {
                         lineUserId = profile.userId;
-                        loadMyQueues(); // พอได้ ID แล้วค่อยไปดึงข้อมูล
+                        loadMyQueues(); 
                     }).catch(err => console.error("Error profile:", err));
                 } else {
                     alert("กรุณาเปิดผ่านแอป LINE เพื่อดูคิวของคุณ");
-                    document.getElementById('loading-overlay').classList.add('hidden');
+                    hideLoading();
                 }
             })
             .catch((err) => console.error("LIFF Init Error: ", err));
     });
 
-    // 2. ดึงข้อมูลคิวจาก Google Sheets
     function loadMyQueues() {
-        document.getElementById('loading-overlay').classList.remove('hidden');
-        document.getElementById('loading-text').innerText = "กำลังโหลดข้อมูลคิวของคุณ...";
-
+        showLoading("กำลังโหลดข้อมูล...");
         fetch(`${API_URL}?action=getMyQueues&lineUserId=${lineUserId}`)
             .then(response => response.json())
             .then(data => {
-                renderQueues(data);
-                document.getElementById('loading-overlay').classList.add('hidden');
+                allQueues = processQueueData(data); // ประมวลผลเวลา
+                renderQueues();
+                hideLoading();
             })
             .catch(error => {
                 console.error("Error loading queues:", error);
-                alert("ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่");
-                document.getElementById('loading-overlay').classList.add('hidden');
+                alert("ไม่สามารถดึงข้อมูลได้");
+                hideLoading();
             });
     }
 
-    // 3. วาดการ์ดแสดงรายการคิว
-    function renderQueues(queues) {
+    // ฟังก์ชันคำนวณและอัปเดตสถานะ "เกินเวลา" อัตโนมัติ
+    function processQueueData(queues) {
+        const now = new Date();
+        return queues.map(q => {
+            if (q.status === "รอรับบริการ") {
+                // แยกวันที่ (รูปแบบ dd/MM/yyyy)
+                const dateParts = q.date.split('/');
+                if (dateParts.length === 3) {
+                    const qDay = parseInt(dateParts[0], 10);
+                    const qMonth = parseInt(dateParts[1], 10) - 1;
+                    const qYear = parseInt(dateParts[2], 10);
+                    
+                    // ดึงเวลาชั่วโมงและนาที 
+                    const timeMatch = q.time.match(/(\d{1,2})[.:](\d{2})/);
+                    if (timeMatch) {
+                        const qHour = parseInt(timeMatch[1], 10);
+                        const qMinute = parseInt(timeMatch[2], 10);
+                        
+                        const queueDateTime = new Date(qYear, qMonth, qDay, qHour, qMinute);
+                        
+                        // ถ้าเวลาปัจจุบัน เลยเวลาของคิวไปแล้ว ให้เปลี่ยนเป็น "เกินเวลา"
+                        if (now > queueDateTime) {
+                            q.status = "เกินเวลา";
+                        }
+                    }
+                }
+            }
+            return q;
+        });
+    }
+
+    function switchTab(tabName) {
+        currentTab = tabName;
+        // รีเซ็ตปุ่มทั้งหมด
+        ['latest', 'upcoming', 'cancelled', 'all'].forEach(tab => {
+            const btn = document.getElementById(`tab-${tab}`);
+            btn.className = "px-4 py-1.5 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400";
+        });
+        // ไฮไลต์ปุ่มที่เลือก
+        document.getElementById(`tab-${tabName}`).className = "px-4 py-1.5 rounded-full text-[13px] font-medium bg-primary text-white shadow-sm";
+        
+        renderQueues();
+    }
+
+    function renderQueues() {
         const container = document.getElementById('queue-list');
         container.innerHTML = '';
 
-        if (queues.length === 0) {
-            container.innerHTML = `
-                <div class="text-center mt-10">
-                    <p class="text-gray-500 text-lg">ยังไม่มีคิวที่จองไว้ค่ะ</p>
-                </div>
-            `;
+        let filteredQueues = [];
+        // คัดลอก Array เพื่อไม่ให้ข้อมูลต้นฉบับพังเวลาใช้ reverse()
+        const sortedQueues = [...allQueues].reverse(); 
+
+        if (currentTab === 'latest') {
+            filteredQueues = sortedQueues; 
+        } else if (currentTab === 'upcoming') {
+            filteredQueues = sortedQueues.filter(q => q.status === 'รอรับบริการ');
+        } else if (currentTab === 'cancelled') {
+            filteredQueues = sortedQueues.filter(q => q.status === 'ยกเลิก');
+        } else if (currentTab === 'all') {
+            filteredQueues = sortedQueues;
+        }
+
+        if (filteredQueues.length === 0) {
+            container.innerHTML = `<p class="text-center text-gray-400 mt-10">ยังไม่มีคิวจอง</p>`;
             return;
         }
 
-        queues.forEach(q => {
+        filteredQueues.forEach(q => {
             const card = document.createElement('div');
-            card.className = "bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative";
+            card.className = "bg-white p-5 rounded-3xl shadow-sm border border-gray-100 relative";
+            
+            // กำหนดสีของป้ายสถานะ (Badge)
+            let badgeHtml = '';
+            let actionHtml = '';
+            
+            if (q.status === 'รอรับบริการ') {
+                badgeHtml = `<span class="text-[11px] bg-blue-50 text-primary px-3 py-1 rounded-md font-medium">รอรับบริการ</span>`;
+                actionHtml = `<button onclick="cancelQueue(${q.row})" class="w-full py-2.5 mt-4 bg-white text-red-500 text-sm font-medium rounded-xl hover:bg-red-50 transition-colors border border-red-200">ยกเลิกคิวนี้</button>`;
+            } else if (q.status === 'ยกเลิก') {
+                badgeHtml = `<span class="text-[11px] bg-red-50 text-red-500 px-3 py-1 rounded-md font-medium">ยกเลิกแล้ว</span>`;
+            } else if (q.status === 'เกินเวลา') {
+                badgeHtml = `<span class="text-[11px] bg-gray-100 text-gray-500 px-3 py-1 rounded-md font-medium">เกินเวลา/เสร็จสิ้น</span>`;
+            }
+
             card.innerHTML = `
                 <div class="flex justify-between items-center mb-3">
-                    <span class="font-medium text-[17px] text-gray-800">${q.service}</span>
-                    <span class="text-xs bg-blue-100 text-blue-600 px-3 py-1 rounded-full">รอรับบริการ</span>
+                    <span class="font-medium text-[16px] text-gray-800">${q.service}</span>
+                    ${badgeHtml}
                 </div>
-                <div class="text-sm text-gray-600 mb-4 leading-relaxed">
-                    <p>วันที่: <span class="font-medium text-gray-800">${q.date}</span></p>
-                    <p>เวลา: <span class="font-medium text-gray-800">${q.time} น.</span></p>
-                    <p>เบอร์ติดต่อ: <span class="text-gray-800">${q.phone}</span></p>
+                <div class="text-sm text-gray-600 mb-1 leading-relaxed flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span>วันที่: <span class="text-gray-800">${q.date}</span></span>
                 </div>
-                <button onclick="cancelQueue(${q.row})" class="w-full py-2.5 bg-red-50 text-red-500 font-medium rounded-xl hover:bg-red-100 transition-colors border border-red-200">
-                    ยกเลิกคิวนี้
-                </button>
+                <div class="text-sm text-gray-600 mb-1 leading-relaxed flex items-center gap-2">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>เวลา: <span class="text-gray-800">${q.time} น.</span></span>
+                </div>
+                ${actionHtml}
             `;
             container.appendChild(card);
         });
     }
 
-    // 4. ฟังก์ชันกดยกเลิกคิว
     function cancelQueue(rowNum) {
-        if(!confirm("ยืนยันการยกเลิกคิวนี้ใช่หรือไม่? \n(หากยกเลิกแล้วจะไม่สามารถกู้คืนได้)")) return;
-
-        document.getElementById('loading-overlay').classList.remove('hidden');
-        document.getElementById('loading-text').innerText = "กำลังทำการยกเลิกคิว...";
-
+        if(!confirm("ยืนยันการยกเลิกคิวนี้ใช่หรือไม่?")) return;
+        showLoading("กำลังยกเลิกคิว...");
         fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({ action: 'cancelQueue', row: rowNum })
@@ -134,26 +206,30 @@
         .then(response => response.json())
         .then(res => {
             if(res.status === "success") {
-                // ส่งข้อความแจ้งลงแชท
                 if (liff.isInClient()) {
-                    liff.sendMessages([{
-                        type: 'text',
-                        text: 'แจ้งยกเลิกคิวเรียบร้อยแล้วค่ะ ❌'
-                    }]).then(() => {
-                        alert("ยกเลิกคิวสำเร็จ!");
-                        loadMyQueues(); // โหลดข้อมูลใหม่เพื่ออัปเดตหน้าจอ
-                    });
+                    liff.sendMessages([{ type: 'text', text: 'แจ้งยกเลิกคิวเรียบร้อยแล้วค่ะ ❌' }])
+                        .then(() => loadMyQueues());
                 } else {
-                    alert("ยกเลิกคิวสำเร็จ!");
                     loadMyQueues();
                 }
             }
         })
         .catch(error => {
-            console.error("Error cancelling:", error);
             alert("ยกเลิกคิวไม่สำเร็จ กรุณาลองใหม่");
-            document.getElementById('loading-overlay').classList.add('hidden');
+            hideLoading();
         });
+    }
+
+    function closeApp() {
+        if (liff.isInClient()) liff.closeWindow();
+    }
+
+    function showLoading(text) {
+        document.getElementById('loading-text').innerText = text;
+        document.getElementById('loading-overlay').classList.remove('hidden');
+    }
+    function hideLoading() {
+        document.getElementById('loading-overlay').classList.add('hidden');
     }
 </script>
 </body>

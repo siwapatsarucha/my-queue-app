@@ -13,7 +13,7 @@
                     fontFamily: { sans: ['Kanit', 'sans-serif'] },
                     colors: { 
                         primary: '#3b82f6', 
-                        bgGray: '#f8f9fa',
+                        bgLight: '#f4f5f7',
                         inputBg: '#e8efff' 
                     }
                 }
@@ -21,7 +21,7 @@
         }
     </script>
 </head>
-<body class="bg-white flex justify-center m-0 p-0 font-sans text-gray-800">
+<body class="bg-gray-100 flex justify-center m-0 p-0 font-sans text-gray-800">
 
 <!-- หน้าจอ Loading -->
 <div id="loading-overlay" class="fixed inset-0 bg-white/90 z-50 flex flex-col justify-center items-center">
@@ -30,7 +30,7 @@
 </div>
 
 <!-- โครงสร้างหลัก -->
-<div class="w-full max-w-[400px] min-h-screen bg-white relative flex flex-col border-x border-gray-100">
+<div class="w-full max-w-[400px] min-h-screen bg-bgLight relative flex flex-col border-x border-gray-100">
     
     <!-- Header -->
     <div class="pt-10 pb-4 px-5 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm">
@@ -38,14 +38,21 @@
             <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         </button>
         <h1 class="text-[17px] font-medium text-gray-800 m-0 text-center flex-1">ตั้งค่าคิว</h1>
-        <div class="w-8"></div> <!-- Spacer ให้ Header สมดุล -->
+        <div class="w-8"></div>
     </div>
 
     <!-- พื้นที่เนื้อหา -->
-    <div class="px-5 flex-grow pb-[120px] flex flex-col gap-6 mt-6">
+    <div class="px-5 flex-grow pb-[120px] flex flex-col gap-5 mt-6">
         
-        <!-- การ์ด 1: รอบเวลาและจำนวนคิว -->
-        <div class="bg-bgGray rounded-3xl p-5 shadow-sm border border-gray-50">
+        <!-- การ์ด 1: ปฏิทินเลือกวัน -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm">
+            <div id="calendar-days" class="flex justify-between items-center">
+                <!-- วันที่จะถูกสร้างด้วย JavaScript -->
+            </div>
+        </div>
+
+        <!-- การ์ด 2: รอบเวลาและจำนวนคิว -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm">
             <div class="flex justify-between items-center mb-5">
                 <span class="text-sm text-gray-800 font-medium">รอบเวลาและจำนวนคิว</span>
                 <button onclick="addTimeSlot()" class="bg-[#2a73ff] text-white text-[11px] px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-700 transition-colors shadow-sm">
@@ -57,25 +64,20 @@
             </div>
         </div>
 
-        <!-- การ์ด 2: ปิดรอบรายวัน -->
-        <div class="bg-bgGray rounded-3xl p-5 shadow-sm border border-gray-50">
-            <div class="flex justify-between items-center mb-5">
-                <span class="text-sm text-gray-800 font-medium">ปิดรอบรายวัน</span>
-                <button onclick="addClosedDay()" class="bg-[#2a73ff] text-white text-[11px] px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-700 transition-colors shadow-sm">
-                    <span>+</span> เพิ่ม
-                </button>
-            </div>
-            <div id="closed-days-list" class="flex flex-col gap-1">
-                <!-- ข้อมูลวันหยุดจะแสดงตรงนี้ -->
-            </div>
+        <!-- การ์ด 3: ปิดรอบรายวัน -->
+        <div class="bg-white rounded-[24px] p-5 shadow-sm flex justify-between items-center">
+            <span class="text-[13px] text-gray-800 font-medium">ปิดรับบริการจองคิววันนี้</span>
+            <button id="toggle-close-day" onclick="toggleCloseDay()" class="w-10 h-6 rounded-full relative transition-colors duration-300 bg-gray-300">
+                <div id="toggle-close-circle" class="w-5 h-5 bg-white rounded-full shadow-sm absolute top-[2px] left-[2px] transition-all duration-300"></div>
+            </button>
         </div>
 
     </div>
 
     <!-- Bottom Action -->
-    <div class="fixed bottom-0 left-0 w-full p-5 bg-white flex justify-center pb-8 border-t border-gray-100">
+    <div class="fixed bottom-0 left-0 w-full p-5 bg-bgLight flex justify-center pb-8">
         <div class="w-full max-w-[400px]">
-            <button onclick="saveAdminSettings()" class="w-full py-3.5 bg-[#4285f4] text-white rounded-xl text-[17px] hover:bg-blue-600 transition-colors font-medium shadow-md">
+            <button onclick="saveAdminSettings()" class="w-full py-3.5 bg-[#4285f4] text-white rounded-2xl text-[17px] hover:bg-blue-600 transition-colors font-medium shadow-md">
                 บันทึกการเปลี่ยนแปลง
             </button>
         </div>
@@ -88,34 +90,29 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
     const LIFF_ID = "2011391523-QXNptpyw";
     const adminLineIds = [
-        "Uc15870aef60973959938d48d6cdac1da", // รหัสเดิม
-        "Uf446e4361cea597d9ab87746949c31bc"  // เพิ่มรหัสของแอดมินคนที่ 2 
+        "Uc15870aef60973959938d48d6cdac1da", 
+        "Uf446e4361cea597d9ab87746949c31bc"  
     ];
 
-    let timesData = [];
+    let globalTimes = []; // เทมเพลตเวลาเริ่มต้น
+    let dailyTimes = {};  // เก็บข้อมูลเวลาแยกตามวัน
     let closedDaysData = []; 
+    
+    let datesList = [];
+    let selectedDate = '';
 
     document.addEventListener("DOMContentLoaded", () => {
-        liff.init({ liffId: LIFF_ID })
-            .then(() => {
-                if (liff.isInClient() || liff.isLoggedIn()) {
-                    liff.getProfile().then(profile => {
-                        if (adminLineIds.includes(profile.userId)) {
-                            loadData();
-                        } else {
-                            document.body.innerHTML = `
-                                <div class="flex flex-col h-screen items-center justify-center bg-white p-5 text-center">
-                                    <h1 class="text-4xl mb-4">⛔</h1>
-                                    <h2 class="text-xl text-red-500 font-medium mb-2">ไม่มีสิทธิ์เข้าถึง</h2>
-                                </div>`;
-                        }
-                    });
-                } else {
-                    // สำหรับทดสอบบนเบราว์เซอร์
-                    loadData();
-                }
-            })
-            .catch(err => console.error("LIFF Init Error:", err));
+        liff.init({ liffId: LIFF_ID }).then(() => {
+            if (liff.isInClient() || liff.isLoggedIn()) {
+                liff.getProfile().then(profile => {
+                    if (adminLineIds.includes(profile.userId)) {
+                        loadData();
+                    } else {
+                        document.body.innerHTML = `<div class="flex flex-col h-screen items-center justify-center bg-white p-5 text-center"><h1 class="text-4xl mb-4">⛔</h1><h2 class="text-xl text-red-500 font-medium mb-2">ไม่มีสิทธิ์เข้าถึง</h2></div>`;
+                    }
+                });
+            } else { loadData(); } // สำหรับทดสอบบนเบราว์เซอร์
+        }).catch(err => console.error("LIFF Init Error:", err));
     });
 
     function loadData() {
@@ -123,16 +120,17 @@
         fetch(API_URL + "?action=getShopData")
             .then(response => response.json())
             .then(data => {
-                // เพิ่มการจัดการค่า isActive (ตั้งค่า default เป็น true ถ้าไม่มี)
-                timesData = (data.times || []).map(t => ({
-                    timeStr: t.timeStr,
-                    maxQueue: t.maxQueue,
-                    isActive: t.isActive !== undefined ? t.isActive : true 
+                // เก็บเวลาเริ่มต้นเป็นเทมเพลต
+                globalTimes = (data.times || []).map(t => ({
+                    timeStr: t.timeStr, maxQueue: t.maxQueue, isActive: t.isActive !== undefined ? t.isActive : true 
                 }));
-                closedDaysData = data.closedDays || []; 
                 
-                renderTimesList();
-                renderClosedDaysList();
+                // ถ้าฝั่งหลังบ้านรองรับการดึง dailyTimes แล้ว ให้ใช้ค่าจากหลังบ้าน
+                dailyTimes = data.dailyTimes || {};
+                closedDaysData = data.closedDays ? data.closedDays.map(d => d.dateStr) : []; 
+                
+                initCalendar();
+                selectDate(datesList[0].fullDate); // เลือกวันแรกอัตโนมัติ
                 hideLoading();
             })
             .catch(error => {
@@ -141,43 +139,88 @@
             });
     }
 
-    // --- ฟังก์ชันแปลงเวลาสำหรับ Input ---
+    // --- สร้างปฏิทิน 7 วัน ---
+    function initCalendar() {
+        datesList = [];
+        const today = new Date();
+        const dayNames = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+        
+        for(let i=0; i<7; i++) {
+            let d = new Date(today);
+            d.setDate(today.getDate() + i);
+            let fullDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            datesList.push({
+                fullDate: fullDateStr,
+                dayStr: dayNames[d.getDay()],
+                dateNum: d.getDate()
+            });
+        }
+    }
+
+    function renderCalendar() {
+        const container = document.getElementById('calendar-days');
+        container.innerHTML = '';
+        datesList.forEach(d => {
+            const isActive = d.fullDate === selectedDate;
+            const circleClass = isActive ? "bg-primary text-white shadow-md" : "bg-transparent text-gray-600 hover:bg-gray-100";
+            
+            container.innerHTML += `
+                <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="selectDate('${d.fullDate}')">
+                    <span class="text-xs ${isActive ? 'text-gray-800 font-medium' : 'text-gray-500'}">${d.dayStr}</span>
+                    <div class="w-10 h-10 rounded-full flex justify-center items-center text-sm transition-all ${circleClass}">
+                        ${d.dateNum}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function selectDate(dateStr) {
+        selectedDate = dateStr;
+        
+        // ถ้าวันนั้นยังไม่เคยถูกตั้งค่า ให้ก็อปปี้เทมเพลตเวลาเริ่มต้นมาใส่
+        if (!dailyTimes[selectedDate]) {
+            dailyTimes[selectedDate] = JSON.parse(JSON.stringify(globalTimes));
+        }
+
+        renderCalendar();
+        renderTimesList();
+        renderCloseDayToggle();
+    }
+
+    // --- ส่วนเรนเดอร์: รอบเวลา ---
     function timeToInputFormat(timeStr) {
         if (!timeStr) return "10:00";
         const match = timeStr.match(/(\d{1,2})[.:](\d{2})/);
-        if (match) {
-            return `${match[1].padStart(2, '0')}:${match[2].padStart(2, '0')}`;
-        }
+        if (match) return `${match[1].padStart(2, '0')}:${match[2].padStart(2, '0')}`;
         return "10:00"; 
     }
-
     function inputToTimeFormat(inputVal) {
         if (!inputVal) return "10.00น.";
         return inputVal.replace(':', '.') + 'น.';
     }
 
-    function toggleActive(index) {
-        timesData[index].isActive = !timesData[index].isActive;
+    function toggleActiveTime(index) {
+        dailyTimes[selectedDate][index].isActive = !dailyTimes[selectedDate][index].isActive;
         renderTimesList();
     }
 
-    // --- ส่วนเรนเดอร์: รอบเวลา ---
     function renderTimesList() {
         const container = document.getElementById('times-list');
         container.innerHTML = '';
 
-        timesData.forEach((t, index) => {
-            const isLast = index === timesData.length - 1;
+        let currentTimes = dailyTimes[selectedDate] || [];
+
+        currentTimes.forEach((t, index) => {
+            const isLast = index === currentTimes.length - 1;
             const borderClass = isLast ? "" : "border-b border-gray-200/60";
-            
             let timeVal = timeToInputFormat(t.timeStr);
             
             container.innerHTML += `
                 <div class="flex items-center justify-between py-3 ${borderClass}">
                     <div class="flex items-center gap-2">
                         <svg class="w-[18px] h-[18px] text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        
-                        <input type="time" value="${timeVal}" onchange="timesData[${index}].timeStr = inputToTimeFormat(this.value)" class="w-[85px] bg-inputBg text-gray-800 text-sm font-medium rounded-full px-2 py-1 outline-none text-center cursor-pointer">
+                        <input type="time" value="${timeVal}" onchange="dailyTimes['${selectedDate}'][${index}].timeStr = inputToTimeFormat(this.value)" class="w-[85px] bg-inputBg text-gray-800 text-sm font-medium rounded-full px-2 py-1 outline-none text-center cursor-pointer">
                         <span class="text-sm text-gray-800">น.</span>
                     </div>
                     
@@ -185,10 +228,9 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
                         </svg>
-                        <input type="number" value="${t.maxQueue}" onchange="timesData[${index}].maxQueue = parseInt(this.value)||1" class="w-[38px] bg-inputBg rounded-full text-center text-sm font-medium text-gray-800 outline-none py-1" min="1">
+                        <input type="number" value="${t.maxQueue}" onchange="dailyTimes['${selectedDate}'][${index}].maxQueue = parseInt(this.value)||1" class="w-[38px] bg-inputBg rounded-full text-center text-sm font-medium text-gray-800 outline-none py-1" min="1">
                         
-                        <!-- Toggle Switch -->
-                        <button onclick="toggleActive(${index})" class="w-9 h-[22px] rounded-full relative transition-colors duration-300 ml-1 ${t.isActive ? 'bg-[#2a73ff]' : 'bg-gray-300'}">
+                        <button onclick="toggleActiveTime(${index})" class="w-9 h-[22px] rounded-full relative transition-colors duration-300 ml-1 ${t.isActive ? 'bg-[#2a73ff]' : 'bg-gray-300'}">
                             <div class="w-[18px] h-[18px] bg-white rounded-full shadow-sm absolute top-[2px] transition-all duration-300 ${t.isActive ? 'right-[2px]' : 'left-[2px]'}"></div>
                         </button>
 
@@ -202,70 +244,55 @@
     }
 
     function addTimeSlot() {
-        timesData.push({ timeStr: "10.00น.", maxQueue: 1, isActive: true });
+        if (!dailyTimes[selectedDate]) dailyTimes[selectedDate] = [];
+        dailyTimes[selectedDate].push({ timeStr: "10.00น.", maxQueue: 1, isActive: true });
         renderTimesList();
     }
     function removeTimeSlot(index) {
-        timesData.splice(index, 1);
+        dailyTimes[selectedDate].splice(index, 1);
         renderTimesList();
     }
 
-    // --- ส่วนเรนเดอร์: ปิดรอบรายวัน ---
-    function renderClosedDaysList() {
-        const container = document.getElementById('closed-days-list');
-        container.innerHTML = '';
-
-        closedDaysData.forEach((d, index) => {
-            const isLast = index === closedDaysData.length - 1;
-            const borderClass = isLast ? "" : "border-b border-gray-200/60";
-            
-            container.innerHTML += `
-                <div class="flex items-center justify-between py-3 ${borderClass}">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                        <span class="text-[13px] text-gray-800">วันที่</span>
-                        <input type="date" value="${d.dateStr}" onchange="closedDaysData[${index}].dateStr = this.value" class="w-[120px] bg-inputBg px-2 py-1 rounded-full text-sm font-medium text-gray-800 outline-none border-none cursor-pointer">
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-[12px] text-gray-700">ปิดบริการ</span>
-                        <button onclick="removeClosedDay(${index})" class="text-red-500 hover:text-red-700">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
+    // --- ส่วนเรนเดอร์: ปิดวัน ---
+    function toggleCloseDay() {
+        const index = closedDaysData.indexOf(selectedDate);
+        if (index > -1) {
+            closedDaysData.splice(index, 1); // เปิดรับคิว
+        } else {
+            closedDaysData.push(selectedDate); // ปิดรับคิว
+        }
+        renderCloseDayToggle();
     }
 
-    function addClosedDay() {
-        const today = new Date().toISOString().split('T')[0]; 
-        closedDaysData.push({ dateStr: today });
-        renderClosedDaysList();
-    }
-    function removeClosedDay(index) {
-        closedDaysData.splice(index, 1);
-        renderClosedDaysList();
+    function renderCloseDayToggle() {
+        const isClosed = closedDaysData.includes(selectedDate);
+        const toggleBtn = document.getElementById('toggle-close-day');
+        const toggleCircle = document.getElementById('toggle-close-circle');
+
+        if (isClosed) {
+            toggleBtn.classList.replace('bg-gray-300', 'bg-red-500'); // สีแดงเมื่อปิดร้าน
+            toggleCircle.classList.replace('left-[2px]', 'right-[2px]');
+        } else {
+            toggleBtn.classList.replace('bg-red-500', 'bg-gray-300');
+            toggleCircle.classList.replace('right-[2px]', 'left-[2px]');
+        }
     }
 
     // --- บันทึกข้อมูล ---
     function saveAdminSettings() {
         showLoading("กำลังบันทึกข้อมูล...");
-
         fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({
-                action: 'updateTimes',
-                data: timesData,
+                action: 'updateDailySettings', // ⚠️ ส่ง action ใหม่ไปหลังบ้าน
+                dailyTimes: dailyTimes,
                 closedDays: closedDaysData 
             })
         })
         .then(response => response.json())
         .then(res => {
-            if(res.status === "success") {
-                alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
-            } else {
-                alert("เกิดข้อผิดพลาด: " + res.message);
-            }
+            if(res.status === "success") { alert("บันทึกข้อมูลเรียบร้อยแล้ว!"); } 
+            else { alert("เกิดข้อผิดพลาด: " + res.message); }
             hideLoading();
         })
         .catch(error => {
@@ -274,19 +301,9 @@
         });
     }
 
-    function closeApp() {
-        if (liff.isInClient()) {
-            liff.closeWindow();
-        }
-    }
-
-    function showLoading(text) {
-        document.getElementById('loading-text').innerText = text;
-        document.getElementById('loading-overlay').classList.remove('hidden');
-    }
-    function hideLoading() {
-        document.getElementById('loading-overlay').classList.add('hidden');
-    }
+    function closeApp() { if (liff.isInClient()) liff.closeWindow(); }
+    function showLoading(text) { document.getElementById('loading-text').innerText = text; document.getElementById('loading-overlay').classList.remove('hidden'); }
+    function hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); }
 </script>
 </body>
 </html>

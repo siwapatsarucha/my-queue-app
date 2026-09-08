@@ -197,21 +197,23 @@
                         now.getMonth() === selectedDate.getMonth() &&
                         now.getDate() === selectedDate.getDate();
 
-        if (!shopData.times || shopData.times.length === 0) {
-            container.innerHTML = '<p class="w-full text-center text-gray-400 my-4">ไม่มีรอบเวลาให้บริการ</p>';
+        // ⚠️ เปลี่ยนให้ดึงเวลาแบบรายวัน (ดึงจากวันที่ลูกค้าเลือก) 
+        // ถ้าวันนั้นไม่มีให้ตั้งเป็น Array ว่าง
+        const dailyTimesArray = shopData.dailyTimes && shopData.dailyTimes[selectedDateFull] 
+                                ? shopData.dailyTimes[selectedDateFull] 
+                                : [];
+
+        if (dailyTimesArray.length === 0) {
+            container.innerHTML = '<p class="w-full text-center text-gray-400 my-4">ไม่มีรอบเวลาให้บริการในวันนี้</p>';
             return;
         }
 
-        shopData.times.forEach(t => {
+        dailyTimesArray.forEach(t => {
             const bookedCount = dateBookings[t.timeStr] || 0;
             
-            // ⚠️ 1. ตรวจสอบว่าแอดมินปิดเวลานี้ไว้หรือไม่ (isActive === false หรือข้อความ "FALSE")
             const isClosedByAdmin = t.isActive === false || String(t.isActive).toUpperCase() === 'FALSE';
-            
-            // ⚠️ 2. คิวจะถูกล็อก (Disabled) ถ้าคิวเต็ม "หรือ" แอดมินปิดเวลาไว้
             let isDisabled = (bookedCount >= t.maxQueue) || isClosedByAdmin; 
 
-            // ⚠️ 3. ถ้าเป็นวันนี้ ให้ตรวจสอบเพิ่มเติมว่าเวลาผ่านไปหรือยัง
             if (isToday && !isDisabled) {
                 const timeMatch = t.timeStr.match(/(\d{1,2})[.:](\d{2})/);
                 if (timeMatch) {

@@ -223,16 +223,24 @@
                         now.getMonth() === selectedDate.getMonth() &&
                         now.getDate() === selectedDate.getDate();
 
-        const dailyTimesArray = shopData.dailyTimes && shopData.dailyTimes[selectedDateFull] 
-                                ? shopData.dailyTimes[selectedDateFull] 
-                                : [];
+        // ⚠️ โลจิกใหม่: 
+        // 1. ลองหาเวลาที่แอดมินตั้งไว้เฉพาะวันนั้นๆ (dailyTimes) ก่อน
+        // 2. ถ้าไม่เจอ ให้ไปดึงเทมเพลตมาตรฐาน (defaultTimes) มาใช้แทน
+        let timesArrayToUse = [];
+        
+        if (shopData.dailyTimes && shopData.dailyTimes[selectedDateFull]) {
+            timesArrayToUse = shopData.dailyTimes[selectedDateFull];
+        } else if (shopData.defaultTimes && shopData.defaultTimes.length > 0) {
+            timesArrayToUse = shopData.defaultTimes;
+        }
 
-        if (dailyTimesArray.length === 0) {
+        // ถ้าไม่มีทั้งคิวรายวันและไม่มีค่า Default เลย
+        if (timesArrayToUse.length === 0) {
             container.innerHTML = '<p class="w-full text-center text-gray-400 mt-4">ไม่มีรอบเวลาให้บริการในวันนี้</p>';
             return;
         }
 
-        dailyTimesArray.forEach(t => {
+        timesArrayToUse.forEach(t => {
             const bookedCount = dateBookings[t.timeStr] || 0;
             const isClosedByAdmin = t.isActive === false || String(t.isActive).toUpperCase() === 'FALSE';
             let isDisabled = (bookedCount >= t.maxQueue) || isClosedByAdmin; 

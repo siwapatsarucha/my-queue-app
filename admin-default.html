@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตั้งค่า Default</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Kanit', 'sans-serif'] },
+                    colors: { 
+                        primary: '#3b82f6', 
+                        bgLight: '#f4f5f7',
+                        inputBg: '#e8efff' 
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 flex justify-center m-0 p-0 font-sans text-gray-800">
+
+<!-- หน้าจอ Loading -->
+<div id="loading-overlay" class="fixed inset-0 bg-white/90 z-50 flex flex-col justify-center items-center">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+    <p class="text-gray-500 text-sm" id="loading-text">กำลังโหลดข้อมูลระบบ...</p>
+</div>
+
+<div class="w-full max-w-[400px] min-h-screen bg-bgLight relative flex flex-col border-x border-gray-100">
+    
+    <!-- Header -->
+    <div class="pt-10 pb-4 px-5 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm">
+        <button onclick="goBack()" class="w-8 h-8 rounded-full border border-gray-800 flex items-center justify-center hover:bg-gray-100 transition-colors">
+            <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <h1 class="text-[17px] font-medium text-gray-800 m-0 text-center flex-1">ตั้งค่า Default</h1>
+        <div class="w-8"></div>
+    </div>
+
+    <!-- พื้นที่เนื้อหา -->
+    <div class="px-5 flex-grow pb-[120px] flex flex-col gap-5 mt-6">
+        
+        <!-- การ์ดตั้งค่าเวลา Default -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-50">
+            <div class="flex justify-between items-center mb-5">
+                <span class="text-sm text-gray-800 font-medium">รอบเวลาและจำนวนคิวต่อวัน</span>
+                <button onclick="addDefaultTimeSlot()" class="bg-[#2a73ff] text-white text-[11px] px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-700 transition-colors shadow-sm">
+                    <span>+</span> เพิ่ม
+                </button>
+            </div>
+            <div id="default-times-list" class="flex flex-col gap-1">
+                <!-- ข้อมูลรอบเวลา Default จะแสดงตรงนี้ -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Action -->
+    <div class="fixed bottom-0 left-0 w-full p-5 bg-bgLight flex justify-center pb-8">
+        <div class="w-full max-w-[400px]">
+            <button onclick="saveDefaultSettings()" class="w-full py-3.5 bg-[#4285f4] text-white rounded-2xl text-[17px] hover:bg-blue-600 transition-colors font-medium shadow-md">
+                บันทึกค่า Default
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ⚠️ ใส่ Web App URL อันล่าสุด
+    const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
+
+    let defaultTimesData = [];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadDefaultData();
+    });
+
+    function loadDefaultData() {
+        showLoading("กำลังโหลดข้อมูล...");
+        fetch(API_URL + "?action=getShopData")
+            .then(response => response.json())
+            .then(data => {
+                defaultTimesData = data.defaultTimes || [];
+                renderDefaultTimesList();
+                hideLoading();
+            })
+            .catch(error => {
+                alert("ไม่สามารถดึงข้อมูลได้");
+                hideLoading();
+            });
+    }
+
+    function timeToInputFormat(timeStr) {
+        if (!timeStr) return "10:00";
+        const match = timeStr.match(/(\d{1,2})[.:](\d{2})/);
+        if (match) return `${match[1].padStart(2, '0')}:${match[2].padStart(2, '0')}`;
+        return "10:00"; 
+    }
+
+    function inputToTimeFormat(inputVal) {
+        if (!inputVal) return "10.00น.";
+        return inputVal.replace(':', '.') + 'น.';
+    }
+
+    function toggleDefaultActive(index) {
+        defaultTimesData[index].isActive = !defaultTimesData[index].isActive;
+        renderDefaultTimesList();
+    }
+
+    function renderDefaultTimesList() {
+        const container = document.getElementById('default-times-list');
+        container.innerHTML = '';
+
+        if(defaultTimesData.length === 0) {
+            container.innerHTML = '<p class="text-center text-sm text-gray-400 py-4">ยังไม่ได้ตั้งค่าคิวพื้นฐาน</p>';
+            return;
+        }
+
+        defaultTimesData.forEach((t, index) => {
+            const isLast = index === defaultTimesData.length - 1;
+            const borderClass = isLast ? "" : "border-b border-gray-200/60";
+            let timeVal = timeToInputFormat(t.timeStr);
+            
+            container.innerHTML += `
+                <div class="flex items-center justify-between py-3 ${borderClass}">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-[18px] h-[18px] text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <input type="time" value="${timeVal}" onchange="defaultTimesData[${index}].timeStr = inputToTimeFormat(this.value)" class="w-[85px] bg-inputBg text-gray-800 text-sm font-medium rounded-full px-2 py-1 outline-none text-center cursor-pointer">
+                        <span class="text-sm text-gray-800">น.</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                        </svg>
+                        <input type="number" value="${t.maxQueue}" onchange="defaultTimesData[${index}].maxQueue = parseInt(this.value)||1" class="w-[38px] bg-inputBg rounded-full text-center text-sm font-medium text-gray-800 outline-none py-1" min="1">
+                        
+                        <button onclick="toggleDefaultActive(${index})" class="w-9 h-[22px] rounded-full relative transition-colors duration-300 ml-1 ${t.isActive ? 'bg-[#2a73ff]' : 'bg-gray-300'}">
+                            <div class="w-[18px] h-[18px] bg-white rounded-full shadow-sm absolute top-[2px] transition-all duration-300 ${t.isActive ? 'right-[2px]' : 'left-[2px]'}"></div>
+                        </button>
+
+                        <button onclick="removeDefaultTimeSlot(${index})" class="text-red-500 hover:text-red-700 ml-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function addDefaultTimeSlot() {
+        defaultTimesData.push({ timeStr: "10.00น.", maxQueue: 1, isActive: true });
+        renderDefaultTimesList();
+    }
+    function removeDefaultTimeSlot(index) {
+        defaultTimesData.splice(index, 1);
+        renderDefaultTimesList();
+    }
+
+    function saveDefaultSettings() {
+        showLoading("กำลังบันทึกค่า Default...");
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'updateDefaultSettings',
+                defaultTimes: defaultTimesData
+            })
+        })
+        .then(response => response.json())
+        .then(res => {
+            if(res.status === "success") { alert("บันทึกค่า Default เรียบร้อยแล้ว!"); } 
+            else { alert("เกิดข้อผิดพลาด: " + res.message); }
+            hideLoading();
+        })
+        .catch(error => {
+            alert("บันทึกข้อมูลไม่สำเร็จ");
+            hideLoading();
+        });
+    }
+
+    function goBack() {
+        // ให้กลับไปหน้าก่อนหน้า (เช่น หน้าตั้งค่ารายวัน)
+        window.history.back();
+    }
+
+    function showLoading(text) { document.getElementById('loading-text').innerText = text; document.getElementById('loading-overlay').classList.remove('hidden'); }
+    function hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); }
+</script>
+</body>
+</html>

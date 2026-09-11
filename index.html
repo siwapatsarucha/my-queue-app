@@ -223,18 +223,25 @@
                         now.getMonth() === selectedDate.getMonth() &&
                         now.getDate() === selectedDate.getDate();
 
-        // ⚠️ โลจิกใหม่: 
-        // 1. ลองหาเวลาที่แอดมินตั้งไว้เฉพาะวันนั้นๆ (dailyTimes) ก่อน
-        // 2. ถ้าไม่เจอ ให้ไปดึงเทมเพลตมาตรฐาน (defaultTimes) มาใช้แทน
-        let timesArrayToUse = [];
-        
-        if (shopData.dailyTimes && shopData.dailyTimes[selectedDateFull]) {
-            timesArrayToUse = shopData.dailyTimes[selectedDateFull];
-        } else if (shopData.defaultTimes && shopData.defaultTimes.length > 0) {
-            timesArrayToUse = shopData.defaultTimes;
-        }
+        // ⚠️ โลจิกใหม่: นำ Default มา "รวม" กับ Daily
+        let baseTimes = shopData.defaultTimes ? JSON.parse(JSON.stringify(shopData.defaultTimes)) : [];
+        let dailyTimes = (shopData.dailyTimes && shopData.dailyTimes[selectedDateFull]) ? shopData.dailyTimes[selectedDateFull] : [];
 
-        // ถ้าไม่มีทั้งคิวรายวันและไม่มีค่า Default เลย
+        let mergedMap = new Map();
+        
+        // 1. วางค่า Default ลงไปก่อนเป็นฐาน
+        baseTimes.forEach(t => mergedMap.set(t.timeStr, t));
+        
+        // 2. เอาค่าที่ตั้งรายวันมาวางทับ/เพิ่ม (ถ้าเวลาซ้ำกัน จะยึดค่าของรายวันเป็นหลัก เช่น เปลี่ยนจำนวนคิว หรือปิดคิว)
+        dailyTimes.forEach(t => mergedMap.set(t.timeStr, t));
+
+        // 3. แปลงกลับเป็น Array แล้วเรียงลำดับเวลาให้ถูกต้อง
+        let timesArrayToUse = Array.from(mergedMap.values()).sort((a, b) => {
+            let timeA = parseFloat(a.timeStr.replace(/[^0-9.]/g, ''));
+            let timeB = parseFloat(b.timeStr.replace(/[^0-9.]/g, ''));
+            return timeA - timeB;
+        });
+
         if (timesArrayToUse.length === 0) {
             container.innerHTML = '<p class="w-full text-center text-gray-400 mt-4">ไม่มีรอบเวลาให้บริการในวันนี้</p>';
             return;

@@ -130,7 +130,8 @@
             .then(response => response.json())
             .then(data => {
                 // เก็บเวลาเริ่มต้นเป็นเทมเพลต
-                globalTimes = (data.times || []).map(t => ({
+                // ของใหม่ (เติมคำว่า default เข้าไป)
+globalTimes = (data.defaultTimes || []).map(t => ({
                     timeStr: t.timeStr, maxQueue: t.maxQueue, isActive: t.isActive !== undefined ? t.isActive : true 
                 }));
                 

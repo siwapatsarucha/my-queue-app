@@ -188,10 +188,33 @@ globalTimes = (data.defaultTimes || []).map(t => ({
     function selectDate(dateStr) {
         selectedDate = dateStr;
         
-        // ถ้าวันนั้นยังไม่เคยถูกตั้งค่า ให้ก็อปปี้เทมเพลตเวลาเริ่มต้นมาใส่
-        if (!dailyTimes[selectedDate]) {
-            dailyTimes[selectedDate] = JSON.parse(JSON.stringify(globalTimes));
-        }
+        // 1. ดึงเทมเพลต Default มาเตรียมไว้เป็นฐาน
+        let baseTimes = JSON.parse(JSON.stringify(globalTimes));
+        let currentDaily = dailyTimes[selectedDate] || [];
+        
+        let mergedMap = new Map();
+        
+        // นำค่า Default มาวางยืนพื้นก่อน พร้อมแปะป้ายว่า isDefault = true
+        baseTimes.forEach(t => mergedMap.set(t.timeStr, { ...t, isDefault: true }));
+        
+        // นำค่ารายวันที่บันทึกไว้มาเขียนทับ
+        currentDaily.forEach(t => {
+            if (mergedMap.has(t.timeStr)) {
+                // ถ้าตรงกับ Default เดิม ให้คงสถานะ isDefault ไว้
+                mergedMap.set(t.timeStr, { ...t, isDefault: true });
+            } else {
+                // ถ้าเป็นเวลาใหม่ที่เพิ่งกด + เพิ่มในวันนี้
+                mergedMap.set(t.timeStr, { ...t, isDefault: false });
+            }
+        });
+        
+        let mergedArray = Array.from(mergedMap.values()).sort((a, b) => {
+            let timeA = parseFloat(a.timeStr.replace(/[^0-9.]/g, ''));
+            let timeB = parseFloat(b.timeStr.replace(/[^0-9.]/g, ''));
+            return timeA - timeB;
+        });
+
+        dailyTimes[selectedDate] = mergedArray;
 
         renderCalendar();
         renderTimesList();
@@ -226,12 +249,31 @@ globalTimes = (data.defaultTimes || []).map(t => ({
             const borderClass = isLast ? "" : "border-b border-gray-200/60";
             let timeVal = timeToInputFormat(t.timeStr);
             
+            // ⚠️ ตรวจสอบว่าเป็น Default หรือไม่
+            let isDefault = t.isDefault;
+            
+            // ถ้าเป็น Default จะทำช่องเวลาให้ดูจางๆ และแก้ไม่ได้ (readonly)
+            let timeInputAttr = isDefault 
+                ? `readonly class="w-[85px] bg-transparent text-gray-500 text-sm font-medium rounded-full px-2 py-1 outline-none text-center"` 
+                : `class="w-[85px] bg-inputBg text-gray-800 text-sm font-medium rounded-full px-2 py-1 outline-none text-center cursor-pointer" onchange="dailyTimes['${selectedDate}'][${index}].timeStr = inputToTimeFormat(this.value)"`;
+
+            // ป้ายบอกว่า Default
+            let defaultBadge = isDefault 
+                ? `<span class="ml-1 text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-md font-medium">Default</span>` 
+                : ``;
+
+            // ถ้าเป็น Default ซ่อนปุ่มลบ (แต่แทนที่ด้วยกล่องว่างเพื่อให้ Layout ไม่เบี้ยว)
+            let deleteBtn = isDefault 
+                ? `<div class="w-[20px] ml-1"></div>` 
+                : `<button onclick="removeTimeSlot(${index})" class="text-red-500 hover:text-red-700 ml-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>`;
+
             container.innerHTML += `
                 <div class="flex items-center justify-between py-3 ${borderClass}">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1">
                         <svg class="w-[18px] h-[18px] text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <input type="time" value="${timeVal}" onchange="dailyTimes['${selectedDate}'][${index}].timeStr = inputToTimeFormat(this.value)" class="w-[85px] bg-inputBg text-gray-800 text-sm font-medium rounded-full px-2 py-1 outline-none text-center cursor-pointer">
+                        <input type="time" value="${timeVal}" ${timeInputAttr}>
                         <span class="text-sm text-gray-800">น.</span>
+                        ${defaultBadge}
                     </div>
                     
                     <div class="flex items-center gap-2">
@@ -244,9 +286,7 @@ globalTimes = (data.defaultTimes || []).map(t => ({
                             <div class="w-[18px] h-[18px] bg-white rounded-full shadow-sm absolute top-[2px] transition-all duration-300 ${t.isActive ? 'right-[2px]' : 'left-[2px]'}"></div>
                         </button>
 
-                        <button onclick="removeTimeSlot(${index})" class="text-red-500 hover:text-red-700 ml-1">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                        ${deleteBtn}
                     </div>
                 </div>
             `;

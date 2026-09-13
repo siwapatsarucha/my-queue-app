@@ -17,19 +17,22 @@
         }
     </script>
 </head>
-<body class="bg-[#1a1a1a] flex justify-center m-0 p-0 font-sans">
+<body class="bg-[#f4f5f7] flex justify-center m-0 p-0 font-sans">
 
-<div class="w-full max-w-[400px] min-h-screen bg-gray-50 relative flex flex-col pt-10">
+<div class="w-full max-w-[400px] min-h-screen bg-[#f4f5f7] relative flex flex-col pt-10 border-x border-gray-100">
     
-    <h1 class="text-xl font-bold text-center text-black mb-6">คิวที่ลูกค้าจอง</h1>
+    <div class="bg-white pt-6 pb-4 rounded-b-3xl shadow-sm mb-6 z-10">
+        <h1 class="text-[22px] font-bold text-center text-gray-800 mb-6">คิวที่ลูกค้าจอง</h1>
 
-    <div class="flex justify-center gap-2 mb-8 px-4">
-        <button id="btn-latest" onclick="switchTab('latest')" class="px-5 py-1.5 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors">ล่าสุด</button>
-        <button id="btn-upcoming" onclick="switchTab('upcoming')" class="px-5 py-1.5 rounded-full text-[13px] font-medium bg-primary text-white transition-colors shadow-sm">คิวใกล้เวลา</button>
-        <button id="btn-cancelled" onclick="switchTab('cancelled')" class="px-5 py-1.5 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors">คิวยกเลิก</button>
+        <div class="flex justify-center gap-2 px-4">
+            <button id="btn-latest" onclick="switchTab('latest')" class="px-4 py-2 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors">ล่าสุด</button>
+            <button id="btn-upcoming" onclick="switchTab('upcoming')" class="px-4 py-2 rounded-full text-[13px] font-medium bg-primary text-white transition-colors shadow-sm">ใกล้ถึงเวลา</button>
+            <button id="btn-cancelled" onclick="switchTab('cancelled')" class="px-4 py-2 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors">คิวยกเลิก</button>
+            <button id="btn-all" onclick="switchTab('all')" class="px-4 py-2 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors">ทั้งหมด</button>
+        </div>
     </div>
 
-    <div id="queue-container" class="px-5 pb-10 flex flex-col gap-3">
+    <div id="queue-container" class="px-5 pb-10 flex flex-col gap-4">
         <p class="text-center text-gray-400 mt-10">กำลังโหลดข้อมูล...</p>
     </div>
 
@@ -62,22 +65,21 @@
     function switchTab(tabName) {
         currentTab = tabName;
         
-        const buttons = ['latest', 'upcoming', 'cancelled'];
+        const buttons = ['latest', 'upcoming', 'cancelled', 'all'];
         buttons.forEach(btn => {
             const el = document.getElementById(`btn-${btn}`);
-            el.className = "px-5 py-1.5 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors";
+            el.className = "px-4 py-2 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors";
         });
 
         const activeBtn = document.getElementById(`btn-${tabName}`);
-        activeBtn.className = "px-5 py-1.5 rounded-full text-[13px] font-medium bg-primary text-white transition-colors shadow-sm";
+        activeBtn.className = "px-4 py-2 rounded-full text-[13px] font-medium bg-primary text-white transition-colors shadow-sm";
 
         renderQueues();
     }
 
-    // ⚠️ เพิ่มฟังก์ชันเช็คเวลาว่า "เลยเวลาหรือยัง?"
-    function isTimePassed(dateStr, timeStr) {
-        if (!dateStr || !timeStr) return false;
-
+    // ฟังก์ชันช่วยแปลง dateStr, timeStr เป็น Date Object
+    function getBookingDateObj(dateStr, timeStr) {
+        if (!dateStr || !timeStr) return null;
         const dateParts = dateStr.split('/');
         if (dateParts.length === 3) {
             const qDay = parseInt(dateParts[0], 10);
@@ -88,14 +90,16 @@
             if (timeMatch) {
                 const qHour = parseInt(timeMatch[1], 10);
                 const qMinute = parseInt(timeMatch[2], 10);
-                
-                const queueDateTime = new Date(qYear, qMonth, qDay, qHour, qMinute);
-                const now = new Date();
-                
-                return now > queueDateTime; // ถ้าเวลาปัจจุบันมากกว่าคิว = เลยเวลาแล้ว (true)
+                return new Date(qYear, qMonth, qDay, qHour, qMinute);
             }
         }
-        return false;
+        return null;
+    }
+
+    function isTimePassed(dateStr, timeStr) {
+        const queueDateTime = getBookingDateObj(dateStr, timeStr);
+        if(!queueDateTime) return false;
+        return new Date() > queueDateTime;
     }
 
     function renderQueues() {
@@ -105,16 +109,27 @@
         let filteredBookings = [];
 
         if (currentTab === 'latest') {
-            // ⚠️ "ล่าสุด": กรองคิวที่ "ยังไม่เลยเวลา" เท่านั้น และกลับด้านเพื่อให้คิวจองล่าสุดขึ้นก่อน
+            // "ล่าสุด": กรองคิวที่ "ยังไม่เลยเวลา" และ "ไม่ยกเลิก" และเรียงจากที่เพิ่งจองเข้ามา
             filteredBookings = allBookings
-                .filter(b => !isTimePassed(b.date, b.time))
+                .filter(b => b.status !== 'ยกเลิก' && !isTimePassed(b.date, b.time))
                 .reverse();
         } else if (currentTab === 'upcoming') {
-            // ⚠️ "คิวใกล้เวลา": กรองคิวที่ "ยังไม่ยกเลิก" และ "ยังไม่เลยเวลา"
+            // "ใกล้ถึงเวลา": กรองคิวที่ "ยังไม่ยกเลิก" และ "ยังไม่เลยเวลา"
             filteredBookings = allBookings.filter(b => b.status !== 'ยกเลิก' && !isTimePassed(b.date, b.time));
+            
+            // ⚠️ เรียงลำดับตามเวลาใกล้สุด (จากปัจจุบันไปอนาคต)
+            filteredBookings.sort((a, b) => {
+                let dateA = getBookingDateObj(a.date, a.time);
+                let dateB = getBookingDateObj(b.date, b.time);
+                if(dateA && dateB) return dateA - dateB;
+                return 0;
+            });
         } else if (currentTab === 'cancelled') {
-            // "คิวยกเลิก": ดึงเฉพาะสถานะยกเลิก (คงไว้แบบเดิมเพื่อเก็บประวัติ)
-            filteredBookings = allBookings.filter(b => b.status === 'ยกเลิก');
+            // "คิวยกเลิก"
+            filteredBookings = allBookings.filter(b => b.status === 'ยกเลิก').reverse();
+        } else if (currentTab === 'all') {
+            // ⚠️ "ทั้งหมด"
+            filteredBookings = [...allBookings].reverse();
         }
 
         if (filteredBookings.length === 0) {
@@ -124,20 +139,20 @@
 
         filteredBookings.forEach(q => {
             const card = document.createElement('div');
-            card.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-1";
+            card.className = "bg-white p-5 rounded-xl shadow-sm border border-gray-50 flex flex-col gap-2";
             
-            let statusColor = q.status === 'ยกเลิก' ? 'text-red-500 bg-red-50' : 'text-green-600 bg-green-50';
+            let statusColor = q.status === 'ยกเลิก' ? 'text-red-500 bg-red-50' : 'text-green-500 bg-green-50';
             
             card.innerHTML = `
-                <div class="flex justify-between items-center mb-1">
-                    <span class="font-semibold text-gray-800">${q.date} | ${q.time}</span>
-                    <span class="text-[11px] px-2 py-1 rounded-md ${statusColor}">${q.status}</span>
+                <div class="flex justify-between items-start mb-1">
+                    <span class="font-semibold text-gray-800 text-[15px]">${q.date} | ${q.time}</span>
+                    <span class="text-[10px] px-2 py-1 rounded-md ${statusColor} font-medium">${q.status}</span>
                 </div>
-                <div class="text-sm text-gray-600 flex justify-between">
-                    <span>บริการ: <span class="text-gray-800">${q.service}</span></span>
+                <div class="text-sm text-gray-800 flex justify-between font-medium">
+                    <span>บริการ: ${q.service}</span>
                 </div>
-                <div class="text-sm text-gray-600 flex justify-between">
-                    <span>เบอร์โทร: <a href="tel:${q.phone}" class="text-primary">${q.phone}</a></span>
+                <div class="text-sm text-gray-800 flex justify-between font-medium">
+                    <span>เบอร์โทร: <a href="tel:${q.phone}" class="text-primary font-normal">${q.phone}</a></span>
                 </div>
             `;
             container.appendChild(card);

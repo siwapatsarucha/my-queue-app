@@ -52,36 +52,32 @@
 <div class="w-full max-w-[400px] h-screen bg-bgLight relative flex flex-col overflow-x-hidden border-x border-gray-100">
     <div id="stepper-container" class="bg-bgLight pt-6"></div>
 
-    <!-- Screen 1 -->
-    <div class="screen flex flex-col p-6 flex-grow pb-[160px]" id="screen1">
+    <!-- ⚠️ สลับมาเป็น Screen 1: เลือกเวลาและบริการ -->
+    <div class="screen flex flex-col p-5 flex-grow pb-[220px] overflow-y-auto" id="screen1">
+        <!-- การ์ด 1: ปฏิทิน -->
+        <div class="content-card">
+            <div id="calendar-container" class="flex justify-between items-center text-center"></div>
+        </div>
+        <!-- การ์ด 2: บริการ -->
+        <div class="content-card">
+            <div id="services-container" class="flex flex-wrap gap-2.5"></div>
+        </div>
+        <!-- การ์ด 3: เวลา -->
+        <div class="content-card flex flex-col h-[200px] overflow-y-auto">
+            <div id="times-container" class="flex flex-wrap gap-2.5 content-start"></div>
+        </div>
+    </div>
+
+    <!-- ⚠️ สลับมาเป็น Screen 2: กรอกเบอร์โทรศัพท์ -->
+    <div class="screen hidden flex-col p-6 flex-grow pb-[160px]" id="screen2">
         <div class="mt-auto mb-auto text-center bg-white p-8 rounded-3xl shadow-sm border border-gray-50">
-            <p class="text-gray-600 mb-8 text-[15px] font-medium">กรุณาใส่เบอร์โทร<br>เพื่อจองคิว</p>
+            <p class="text-gray-600 mb-8 text-[15px] font-medium">กรุณาใส่เบอร์โทร<br>เพื่อยืนยันการจองคิว</p>
             <input type="tel" id="phone-input" class="border-b-2 border-gray-300 w-4/5 text-xl text-center p-2 outline-none focus:border-primary transition-colors bg-transparent" placeholder="08X-XXX-XXXX">
             <p id="phone-error" class="text-red-500 text-sm mt-3 hidden">กรุณาระบุเบอร์โทรศัพท์</p>
         </div>
     </div>
 
-    <!-- Screen 2 -->
-    <div class="screen hidden flex-col p-5 flex-grow  overflow-y-auto" id="screen2">
-        
-        <!-- การ์ด 1: ปฏิทิน -->
-        <div class="content-card">
-            <div id="calendar-container" class="flex justify-between items-center text-center"></div>
-        </div>
-        
-        <!-- การ์ด 2: บริการ -->
-        <div class="content-card">
-            <div id="services-container" class="flex flex-wrap gap-2.5"></div>
-        </div>
-        
-        <!-- ของใหม่ (ลบ flex-grow ออกแล้ว) -->
-<div class="content-card flex flex-col h-[160px] overflow-y-auto">
-    <div id="times-container" class="flex flex-wrap gap-2.5 content-start"></div>
-</div>
-        
-    </div>
-
-    <!-- Screen 3 -->
+    <!-- Screen 3: จองสำเร็จ -->
     <div class="screen hidden flex-col p-6 flex-grow pb-[160px]" id="screen3">
         <div class="m-auto text-center bg-white p-10 rounded-3xl shadow-sm border border-gray-50 w-full">
             <h1 class="text-[38px] text-gray-800 font-medium leading-[1.2] m-0">จองคิว<br>เรียบร้อยค่ะ</h1>
@@ -91,7 +87,7 @@
 
     <!-- Bottom Actions -->
     <div id="bottom-actions" class="absolute bottom-0 left-0 w-full p-5 bg-bgLight box-border flex flex-col gap-3">
-        <button class="w-full p-4 bg-primary text-white rounded-full text-lg shadow-[0_4px_6px_rgba(74,136,247,0.2)] hover:bg-primaryHover transition-colors" onclick="validateStep1()">Continue</button>
+        <!-- ปุ่มจะถูกเปลี่ยนอัตโนมัติตาม Step ด้วย JS -->
     </div>
 </div>
     
@@ -99,6 +95,7 @@
 <script src="./stepper.js"></script>
 
 <script>
+    // ⚠️ ใส่ Web App URL อันล่าสุดของคุณที่นี่
     const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
     const LIFF_ID = "2011391523-fqHvpw34";
 
@@ -131,28 +128,29 @@
 
                 const bottomActions = document.getElementById('bottom-actions');
                 
+                // ⚠️ อัปเดตปุ่มตาม Step ใหม่
                 if (newStep === 1) {
-                    bottomActions.innerHTML = `<button class="w-full p-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="validateStep1()">Continue</button>`;
-                } else if (newStep === 2) {
                     bottomActions.innerHTML = `
-                        <button id="btn-next-step2" class="w-full p-4 bg-primary text-white rounded-[20px] text-[17px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="validateStep2()">Next</button>
+                        <button id="btn-next-step1" class="w-full p-4 bg-primary text-white rounded-[20px] text-[17px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="validateStep1()">Next</button>
                         
-                        <!-- ⚠️ ส่วนที่เพิ่มใหม่: จัดเรียงปุ่มโทรและปุ่มแชทให้อยู่คู่กัน -->
                         <div class="flex gap-3 w-full">
-                            <!-- ปุ่มโทร (ใช้พื้นที่ส่วนใหญ่ flex-1) -->
                             <a href="tel:0957356302" class="flex-1 p-3.5 bg-white border border-primary text-primary rounded-[20px] text-[17px] font-medium flex justify-center items-center gap-2 hover:bg-blue-50 transition-colors">
                                 <span>จองคิวเวลาอื่น</span>
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                             </a>
                             
-                            <!-- ปุ่มแชท (ปิดหน้าต่าง LIFF กลับไปหน้าแชท) -->
                             <button onclick="if(typeof liff !== 'undefined' && liff.isInClient()) liff.closeWindow();" class="w-[90px] p-3.5 bg-white border border-primary text-primary rounded-[20px] text-[17px] font-medium flex justify-center items-center hover:bg-blue-50 transition-colors">
                                 แชท
                             </button>
                         </div>
                     `;
+                } else if (newStep === 2) {
+                    bottomActions.innerHTML = `
+                        <button id="btn-next-step2" class="w-full p-4 bg-primary text-white rounded-[20px] text-[17px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="validateStep2()">ยืนยันการจอง</button>
+                        <button class="w-full p-4 bg-gray-200 text-gray-500 rounded-[20px] text-[17px] font-medium hover:bg-gray-300 transition-colors" onclick="myStepper.prev()">ย้อนกลับ</button>
+                    `;
                 } else if (newStep === 3) {
-                    bottomActions.innerHTML = `<button class="w-full p-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="closeAndSendMessage()">ยืนยันและปิดหน้าต่าง</button>`;
+                    bottomActions.innerHTML = `<button class="w-full p-4 bg-primary text-white rounded-[20px] text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="closeAndSendMessage()">ยืนยันและปิดหน้าต่าง</button>`;
                 }
             }
         });
@@ -177,7 +175,7 @@
         if (firstAvailableDate) {
             selectDate(firstAvailableDate.fullDate);
         } else {
-            document.getElementById('times-container').innerHTML = '<p class="w-full text-center text-red-500">ขออภัยค่ะ ร้านปิดให้บริการในสัปดาห์นี้ทั้งหมด</p>';
+            document.getElementById('times-container').innerHTML = '<p class="w-full text-center text-red-500 mt-4">ขออภัยค่ะ ร้านปิดให้บริการในสัปดาห์นี้ทั้งหมด</p>';
         }
     }
 
@@ -232,19 +230,13 @@
                         now.getMonth() === selectedDate.getMonth() &&
                         now.getDate() === selectedDate.getDate();
 
-        // ⚠️ โลจิกใหม่: นำ Default มา "รวม" กับ Daily
         let baseTimes = shopData.defaultTimes ? JSON.parse(JSON.stringify(shopData.defaultTimes)) : [];
         let dailyTimes = (shopData.dailyTimes && shopData.dailyTimes[selectedDateFull]) ? shopData.dailyTimes[selectedDateFull] : [];
 
         let mergedMap = new Map();
-        
-        // 1. วางค่า Default ลงไปก่อนเป็นฐาน
         baseTimes.forEach(t => mergedMap.set(t.timeStr, t));
-        
-        // 2. เอาค่าที่ตั้งรายวันมาวางทับ/เพิ่ม (ถ้าเวลาซ้ำกัน จะยึดค่าของรายวันเป็นหลัก เช่น เปลี่ยนจำนวนคิว หรือปิดคิว)
         dailyTimes.forEach(t => mergedMap.set(t.timeStr, t));
 
-        // 3. แปลงกลับเป็น Array แล้วเรียงลำดับเวลาให้ถูกต้อง
         let timesArrayToUse = Array.from(mergedMap.values()).sort((a, b) => {
             let timeA = parseFloat(a.timeStr.replace(/[^0-9.]/g, ''));
             let timeB = parseFloat(b.timeStr.replace(/[^0-9.]/g, ''));
@@ -305,7 +297,17 @@
         bookingForm.time = timeStr;
     }
 
+    // ⚠️ สลับ Logic: Step 1 เช็คว่าเลือกเวลาหรือยัง
     function validateStep1() {
+        if(!bookingForm.time) {
+            alert("กรุณาเลือกรอบเวลาก่อนดำเนินการต่อ");
+            return;
+        }
+        myStepper.next();
+    }
+
+    // ⚠️ สลับ Logic: Step 2 เช็คเบอร์โทร และกดส่งข้อมูลจองคิว
+    function validateStep2() {
         const phone = document.getElementById('phone-input').value.trim();
         if(!phone) {
             document.getElementById('phone-error').classList.remove('hidden');
@@ -313,14 +315,6 @@
         }
         document.getElementById('phone-error').classList.add('hidden');
         bookingForm.phone = phone;
-        myStepper.next();
-    }
-
-    function validateStep2() {
-        if(!bookingForm.time) {
-            alert("กรุณาเลือกรอบเวลาก่อนดำเนินการต่อ");
-            return;
-        }
         
         const btnNext = document.getElementById('btn-next-step2');
         btnNext.innerText = "กำลังบันทึกข้อมูล...";
@@ -341,13 +335,13 @@
                 myStepper.next(); 
             } else {
                 alert("เกิดข้อผิดพลาด: " + res.message);
-                btnNext.innerText = "Next";
+                btnNext.innerText = "ยืนยันการจอง";
                 btnNext.disabled = false;
             }
         })
         .catch(error => {
             alert("บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่");
-            btnNext.innerText = "Next";
+            btnNext.innerText = "ยืนยันการจอง";
             btnNext.disabled = false;
         });
     }

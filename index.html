@@ -52,24 +52,39 @@
 <div class="w-full max-w-[400px] h-screen bg-bgLight relative flex flex-col overflow-x-hidden border-x border-gray-100">
     <div id="stepper-container" class="bg-bgLight pt-6"></div>
 
-    <!-- ⚠️ สลับมาเป็น Screen 1: เลือกเวลาและบริการ -->
-    <div class="screen flex flex-col p-5 flex-grow pb-[220px] overflow-y-auto" id="screen1">
+    <!-- ⚠️ สลับเอาส่วนเลือกบริการและเวลามาไว้ Screen 1 -->
+    <div class="screen flex flex-col p-5 flex-grow pb-[160px] overflow-y-auto" id="screen1">
+        
         <!-- การ์ด 1: ปฏิทิน -->
         <div class="content-card">
             <div id="calendar-container" class="flex justify-between items-center text-center"></div>
         </div>
+        
         <!-- การ์ด 2: บริการ -->
         <div class="content-card">
             <div id="services-container" class="flex flex-wrap gap-2.5"></div>
         </div>
+        
         <!-- การ์ด 3: เวลา -->
         <div class="content-card flex flex-col h-[160px] overflow-y-auto">
             <div id="times-container" class="flex flex-wrap gap-2.5 content-start"></div>
         </div>
+        
     </div>
 
-    <!-- ⚠️ สลับมาเป็น Screen 2: กรอกเบอร์โทรศัพท์ -->
-    <div class="screen hidden flex-col p-6 flex-grow pb-[160px]" id="screen2">
+    <!-- ⚠️ สลับเอาเบอร์โทรไปไว้ Screen 2 และเพิ่มสรุปข้อมูลที่เลือกมา -->
+    <div class="screen hidden flex-col p-6 flex-grow pb-[220px]" id="screen2">
+        <!-- สรุปข้อมูลที่เลือก -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-gray-50 mb-6">
+            <h2 class="text-gray-800 font-medium mb-4 text-[15px]">รายการที่เลือก</h2>
+            <div class="flex flex-col gap-2 text-sm text-gray-600">
+                <div class="flex justify-between"><span>บริการ:</span> <span id="confirm-service" class="font-medium text-gray-800">-</span></div>
+                <div class="flex justify-between"><span>วันที่:</span> <span id="confirm-date" class="font-medium text-gray-800">-</span></div>
+                <div class="flex justify-between"><span>เวลา:</span> <span id="confirm-time" class="font-medium text-gray-800">-</span></div>
+            </div>
+        </div>
+
+        <!-- กรอกเบอร์โทร -->
         <div class="mt-auto mb-auto text-center bg-white p-8 rounded-3xl shadow-sm border border-gray-50">
             <p class="text-gray-600 mb-8 text-[15px] font-medium">กรุณาใส่เบอร์โทร<br>เพื่อยืนยันการจองคิว</p>
             <input type="tel" id="phone-input" class="border-b-2 border-gray-300 w-4/5 text-xl text-center p-2 outline-none focus:border-primary transition-colors bg-transparent" placeholder="08X-XXX-XXXX">
@@ -77,7 +92,7 @@
         </div>
     </div>
 
-    <!-- Screen 3: จองสำเร็จ -->
+    <!-- Screen 3 -->
     <div class="screen hidden flex-col p-6 flex-grow pb-[160px]" id="screen3">
         <div class="m-auto text-center bg-white p-10 rounded-3xl shadow-sm border border-gray-50 w-full">
             <h1 class="text-[38px] text-gray-800 font-medium leading-[1.2] m-0">จองคิว<br>เรียบร้อยค่ะ</h1>
@@ -87,7 +102,7 @@
 
     <!-- Bottom Actions -->
     <div id="bottom-actions" class="absolute bottom-0 left-0 w-full p-5 bg-bgLight box-border flex flex-col gap-3">
-        <!-- ปุ่มจะถูกเปลี่ยนอัตโนมัติตาม Step ด้วย JS -->
+        <!-- ปุ่มจะถูกแทนที่ด้วย JS ตามสเตปปัจจุบัน -->
     </div>
 </div>
     
@@ -95,7 +110,6 @@
 <script src="./stepper.js"></script>
 
 <script>
-    // ⚠️ ใส่ Web App URL อันล่าสุดของคุณที่นี่
     const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
     const LIFF_ID = "2011391523-fqHvpw34";
 
@@ -128,10 +142,13 @@
 
                 const bottomActions = document.getElementById('bottom-actions');
                 
-                // ⚠️ อัปเดตปุ่มตาม Step ใหม่
                 if (newStep === 1) {
+                    // Step 1: เลือกรอบเวลา
+                    bottomActions.innerHTML = `<button class="w-full p-4 bg-primary text-white rounded-[20px] text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="validateStep1()">Next</button>`;
+                } else if (newStep === 2) {
+                    // Step 2: กรอกเบอร์โทร และกดจอง
                     bottomActions.innerHTML = `
-                        <button id="btn-next-step1" class="w-full p-4 bg-primary text-white rounded-[20px] text-[17px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="validateStep1()">Next</button>
+                        <button id="btn-next-step2" class="w-full p-4 bg-primary text-white rounded-[20px] text-[17px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="validateStep2()">ยืนยันการจอง</button>
                         
                         <div class="flex gap-3 w-full">
                             <a href="tel:0957356302" class="flex-1 p-3.5 bg-white border border-primary text-primary rounded-[20px] text-[17px] font-medium flex justify-center items-center gap-2 hover:bg-blue-50 transition-colors">
@@ -144,13 +161,8 @@
                             </button>
                         </div>
                     `;
-                } else if (newStep === 2) {
-                    bottomActions.innerHTML = `
-                        <button id="btn-next-step2" class="w-full p-4 bg-primary text-white rounded-[20px] text-[17px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="validateStep2()">ยืนยันการจอง</button>
-                        <button class="w-full p-4 bg-gray-200 text-gray-500 rounded-[20px] text-[17px] font-medium hover:bg-gray-300 transition-colors" onclick="myStepper.prev()">ย้อนกลับ</button>
-                    `;
                 } else if (newStep === 3) {
-                    bottomActions.innerHTML = `<button class="w-full p-4 bg-primary text-white rounded-[20px] text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="closeAndSendMessage()">ยืนยันและปิดหน้าต่าง</button>`;
+                    bottomActions.innerHTML = `<button class="w-full p-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="closeAndSendMessage()">ยืนยันและปิดหน้าต่าง</button>`;
                 }
             }
         });
@@ -175,7 +187,7 @@
         if (firstAvailableDate) {
             selectDate(firstAvailableDate.fullDate);
         } else {
-            document.getElementById('times-container').innerHTML = '<p class="w-full text-center text-red-500 mt-4">ขออภัยค่ะ ร้านปิดให้บริการในสัปดาห์นี้ทั้งหมด</p>';
+            document.getElementById('times-container').innerHTML = '<p class="w-full text-center text-red-500">ขออภัยค่ะ ร้านปิดให้บริการในสัปดาห์นี้ทั้งหมด</p>';
         }
     }
 
@@ -234,6 +246,7 @@
         let dailyTimes = (shopData.dailyTimes && shopData.dailyTimes[selectedDateFull]) ? shopData.dailyTimes[selectedDateFull] : [];
 
         let mergedMap = new Map();
+        
         baseTimes.forEach(t => mergedMap.set(t.timeStr, t));
         dailyTimes.forEach(t => mergedMap.set(t.timeStr, t));
 
@@ -297,16 +310,22 @@
         bookingForm.time = timeStr;
     }
 
-    // ⚠️ สลับ Logic: Step 1 เช็คว่าเลือกเวลาหรือยัง
+    // ⚠️ Validate Step 1: ตรวจสอบว่าเลือกรอบเวลาหรือยัง
     function validateStep1() {
         if(!bookingForm.time) {
             alert("กรุณาเลือกรอบเวลาก่อนดำเนินการต่อ");
             return;
         }
+        
+        // อัปเดตข้อมูลสรุปลงในหน้า Screen 2
+        document.getElementById('confirm-service').innerText = bookingForm.service;
+        document.getElementById('confirm-date').innerText = bookingForm.date;
+        document.getElementById('confirm-time').innerText = bookingForm.time;
+        
         myStepper.next();
     }
 
-    // ⚠️ สลับ Logic: Step 2 เช็คเบอร์โทร และกดส่งข้อมูลจองคิว
+    // ⚠️ Validate Step 2: ตรวจสอบเบอร์โทรและยิง API จองคิว
     function validateStep2() {
         const phone = document.getElementById('phone-input').value.trim();
         if(!phone) {
@@ -315,7 +334,7 @@
         }
         document.getElementById('phone-error').classList.add('hidden');
         bookingForm.phone = phone;
-        
+
         const btnNext = document.getElementById('btn-next-step2');
         btnNext.innerText = "กำลังบันทึกข้อมูล...";
         btnNext.disabled = true;

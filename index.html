@@ -55,9 +55,15 @@
     <!-- Screen 1: เลือกวัน เวลา และบริการ -->
     <div class="screen flex flex-col p-5 flex-grow pb-[100px] overflow-y-auto" id="screen1">
         
-        <!-- การ์ด 1: ปฏิทิน -->
-        <div class="content-card">
-            <div id="calendar-container" class="flex justify-between items-center text-center"></div>
+        <!-- การ์ด 1: ปฏิทิน (อัปเดตระบบสไลด์) -->
+        <div class="content-card relative overflow-hidden transition-all duration-300 h-[105px]" id="calendar-wrapper">
+            <!-- เปลี่ยน flex เป็น grid grid-cols-7 เพื่อให้จัดเรียงลงมาเป็นแถวสวยงาม -->
+            <div id="calendar-container" class="grid grid-cols-7 gap-y-4 items-center text-center pb-4"></div>
+            
+            <!-- แถบดึง (Swipe Handle) -->
+            <div id="swipe-handle" class="absolute bottom-0 left-0 w-full h-8 flex justify-center items-center cursor-pointer bg-gradient-to-t from-white via-white to-white/60" onclick="toggleCalendar()">
+                <div class="w-10 h-1.5 bg-gray-200 rounded-full"></div>
+            </div>
         </div>
         
         <!-- การ์ด 2: บริการ -->
@@ -127,6 +133,24 @@
     let bookingForm = { phone: '', date: '', service: '', time: '', lineUserId: '' };
     let myStepper;
 
+    // ตัวแปรสำหรับปฏิทินสไลด์
+    let isCalendarExpanded = false;
+    let touchStartY = 0;
+
+    // ฟังก์ชันยืด/หด ปฏิทิน
+    function toggleCalendar() {
+        const wrapper = document.getElementById('calendar-wrapper');
+        isCalendarExpanded = !isCalendarExpanded;
+        
+        if (isCalendarExpanded) {
+            wrapper.classList.remove('h-[105px]');
+            wrapper.classList.add('h-[340px]'); // กางออก
+        } else {
+            wrapper.classList.remove('h-[340px]');
+            wrapper.classList.add('h-[105px]'); // หดกลับ
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         liff.init({ liffId: LIFF_ID })
             .then(() => {
@@ -166,7 +190,6 @@
                         </div>
                     `;
                 } else if (newStep === 2) {
-                    // ปรับแต่งปุ่มให้โค้งมนแบบเต็ม (rounded-full) ตามรูป ref และเปลี่ยนสี
                     bottomActions.innerHTML = `
                         <button id="btn-next-step2" class="w-full py-3.5 px-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="validateStep2()">ยืนยันการจองคิว</button>
                         <button class="w-full py-3.5 px-4 bg-[#e5e7eb] text-gray-400 rounded-full text-[17px] font-medium hover:bg-gray-300 transition-colors mt-1" onclick="myStepper.prev()">กลับไปแก้ไขเวลา</button>
@@ -183,6 +206,23 @@
             .catch(error => {
                 alert("ไม่สามารถดึงข้อมูลร้านได้ กรุณาลองใหม่อีกครั้ง");
             });
+
+        // ⚠️ โค้ดดักจับการสไลด์นิ้ว (Swipe) บนปฏิทิน
+        const calWrapper = document.getElementById('calendar-wrapper');
+        calWrapper.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        }, {passive: true});
+
+        calWrapper.addEventListener('touchend', (e) => {
+            const touchEndY = e.changedTouches[0].clientY;
+            const diff = touchEndY - touchStartY;
+            
+            if (diff > 40 && !isCalendarExpanded) {
+                toggleCalendar(); // ปัดนิ้วลง (ขยาย)
+            } else if (diff < -40 && isCalendarExpanded) {
+                toggleCalendar(); // ปัดนิ้วขึ้น (ย่อ)
+            }
+        }, {passive: true});
     });
 
     function initApp(data) {
@@ -325,7 +365,6 @@
             return;
         }
         
-        // ⚠️ ปรับแก้ให้ตรงตามดีไซน์: แสดงข้อความเป็นตัวหนา
         document.getElementById('booking-preview').innerHTML = 
             `<p>บริการ: <span class="font-bold text-black">${bookingForm.service}</span></p>
              <p>วันที่: <span class="font-bold text-black">${bookingForm.date}</span></p>

@@ -56,9 +56,8 @@
     <div class="screen flex flex-col p-5 flex-grow pb-[100px] overflow-y-auto" id="screen1">
         
         <!-- การ์ด 1: ปฏิทิน (อัปเดตระบบสไลด์) -->
-        <div class="content-card relative overflow-hidden transition-all duration-300 h-[105px]" id="calendar-wrapper">
-            <!-- เปลี่ยน flex เป็น grid grid-cols-7 เพื่อให้จัดเรียงลงมาเป็นแถวสวยงาม -->
-            <div id="calendar-container" class="grid grid-cols-7 gap-y-4 items-center text-center pb-4"></div>
+        <div class="content-card relative overflow-hidden transition-all duration-300" id="calendar-wrapper" style="max-height: 105px;">
+            <div id="calendar-container" class="flex flex-col w-full pb-6"></div>
             
             <!-- แถบดึง (Swipe Handle) -->
             <div id="swipe-handle" class="absolute bottom-0 left-0 w-full h-8 flex justify-center items-center cursor-pointer bg-gradient-to-t from-white via-white to-white/60" onclick="toggleCalendar()">
@@ -143,11 +142,9 @@
         isCalendarExpanded = !isCalendarExpanded;
         
         if (isCalendarExpanded) {
-            wrapper.classList.remove('h-[105px]');
-            wrapper.classList.add('h-[340px]'); // กางออก
+            wrapper.style.maxHeight = '380px'; // กางออกสุด (5 สัปดาห์)
         } else {
-            wrapper.classList.remove('h-[340px]');
-            wrapper.classList.add('h-[105px]'); // หดกลับ
+            wrapper.style.maxHeight = '105px'; // หดกลับมาเหลือ 1 แถว
         }
     }
 
@@ -260,24 +257,33 @@
         
         const closedDates = shopData.closedDays ? shopData.closedDays.map(cd => cd.dateStr) : [];
 
+        // 1. สร้างแถวหัวตาราง (วัน ศ. ส. อา. ...) แสดงแค่แถวเดียวด้านบนสุด
+        const headerRow = document.createElement('div');
+        headerRow.className = "grid grid-cols-7 text-center mb-1";
+        for(let i = 0; i < 7; i++) {
+            if(shopData.dates[i]) {
+                headerRow.innerHTML += `<div class="cal-day-text">${shopData.dates[i].dayStr}</div>`;
+            }
+        }
+        container.appendChild(headerRow);
+
+        // 2. สร้างตารางวันที่ (แสดงเฉพาะตัวเลข)
+        const datesGrid = document.createElement('div');
+        datesGrid.className = "grid grid-cols-7 gap-y-3 items-center text-center";
+        
         shopData.dates.forEach(d => {
             const isClosed = closedDates.includes(d.fullDate);
             const wrapper = document.createElement('div');
-            wrapper.className = "flex flex-col items-center gap-1";
+            wrapper.className = "flex justify-center";
             
             if (isClosed) {
-                wrapper.innerHTML = `
-                    <div class="cal-day-text text-red-400">ปิด</div>
-                    <div class="cal-date disabled">${d.dateNum}</div>
-                `;
+                wrapper.innerHTML = `<div class="cal-date disabled">${d.dateNum}</div>`;
             } else {
-                wrapper.innerHTML = `
-                    <div class="cal-day-text">${d.dayStr}</div>
-                    <div class="cal-date" id="date-${d.fullDate}" onclick="selectDate('${d.fullDate}')">${d.dateNum}</div>
-                `;
+                wrapper.innerHTML = `<div class="cal-date" id="date-${d.fullDate}" onclick="selectDate('${d.fullDate}')">${d.dateNum}</div>`;
             }
-            container.appendChild(wrapper);
+            datesGrid.appendChild(wrapper);
         });
+        container.appendChild(datesGrid);
     }
 
     function renderTimes(selectedDateFull) {

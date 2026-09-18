@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Booking App</title>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -73,28 +73,28 @@
     </div>
 
     <!-- Screen 2: ใส่เบอร์โทรเพื่อยืนยัน -->
-    <div class="screen hidden flex-col p-5 flex-grow pb-[160px]" id="screen2">
-        <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-6 flex flex-col items-center mb-6 w-full max-w-[320px] mx-auto mt-auto mb-auto">
+    <div class="screen hidden flex-col p-5 flex-grow pb-[180px]" id="screen2">
+        <div class="bg-white rounded-[28px] shadow-sm border border-gray-50 p-6 flex flex-col items-center mb-6 w-full max-w-[340px] mx-auto mt-auto mb-auto">
             
             <!-- กล่องตั๋วคิวที่เลือก -->
-            <div class="w-full bg-[#dbeafe] rounded-2xl p-5 mb-8">
-                <h3 class="text-primary font-bold text-[17px] text-center mb-4">คิวที่คุณเลือก</h3>
-                <div class="text-left text-[15px] text-gray-700 flex flex-col gap-2 px-2" id="booking-preview">
+            <div class="w-full bg-[#dbeafe] rounded-2xl p-6 mb-10">
+                <h3 class="text-primary font-bold text-[18px] text-center mb-4">คิวที่คุณเลือก</h3>
+                <div class="text-left text-[15px] text-gray-800 flex flex-col gap-2.5 px-2" id="booking-preview">
                     <!-- ข้อมูลจะถูกใส่ผ่าน JavaScript -->
                 </div>
             </div>
 
             <!-- ส่วนใส่เบอร์โทร -->
-            <h3 class="text-primary font-bold text-[17px] mb-4">กรุณาใส่เบอร์โทร</h3>
-            <input type="tel" id="phone-input" class="w-full text-3xl text-center outline-none bg-transparent font-medium text-gray-700 placeholder-gray-200 tracking-wider" placeholder="08X-XXX-XXXX">
-            <p id="phone-error" class="text-red-500 text-sm mt-3 hidden">กรุณาระบุเบอร์โทรศัพท์</p>
+            <h3 class="text-primary font-bold text-[18px] mb-4">กรุณาใส่เบอร์โทร</h3>
+            <input type="tel" id="phone-input" class="w-full text-[28px] text-center outline-none bg-transparent font-medium text-gray-800 placeholder-gray-200 tracking-[0.1em] mb-4" placeholder="08X-XXX-XXXX">
+            <p id="phone-error" class="text-red-500 text-sm hidden">กรุณาระบุเบอร์โทรศัพท์</p>
             
         </div>
     </div>
 
     <!-- Screen 3: จองสำเร็จ -->
     <div class="screen hidden flex-col p-6 flex-grow pb-[160px]" id="screen3">
-        <div class="m-auto text-center bg-white p-10 rounded-3xl shadow-sm border border-gray-50 w-full">
+        <div class="m-auto text-center bg-white p-10 rounded-[28px] shadow-sm border border-gray-50 w-full">
             <h1 class="text-[38px] text-gray-800 font-medium leading-[1.2] m-0">จองคิว<br>เรียบร้อยค่ะ</h1>
             <p id="summary-text" class="text-gray-500 mt-6 text-[15px] leading-relaxed"></p>
         </div>
@@ -103,13 +103,13 @@
     <!-- Bottom Actions -->
     <div id="bottom-actions" class="absolute bottom-0 left-0 w-full p-5 bg-bgLight box-border flex flex-col gap-3">
         <!-- ⚠️ ใส่ปุ่มเริ่มต้นของ Step 1 ไว้ใน HTML เลย -->
-        <button class="w-full p-4 bg-primary text-white rounded-[20px] text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="validateStep1()">Next</button>
+        <button class="w-full py-3.5 px-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="validateStep1()">Next</button>
         <div class="flex gap-3 w-full mt-1">
-            <a href="tel:0957356302" class="flex-1 p-3.5 bg-white border border-primary text-primary rounded-[20px] text-[16px] font-medium flex justify-center items-center gap-2 hover:bg-blue-50 transition-colors">
+            <a href="tel:0957356302" class="flex-1 py-3.5 px-4 bg-white border border-primary text-primary rounded-full text-[16px] font-medium flex justify-center items-center gap-2 hover:bg-blue-50 transition-colors">
                 <span>จองคิวเวลาอื่น</span>
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
             </a>
-            <button onclick="if(typeof liff !== 'undefined' && liff.isInClient()) liff.closeWindow();" class="w-[90px] p-3.5 bg-white border border-primary text-primary rounded-[20px] text-[16px] font-medium flex justify-center items-center hover:bg-blue-50 transition-colors">
+            <button onclick="if(typeof liff !== 'undefined' && liff.isInClient()) liff.closeWindow();" class="w-[90px] py-3.5 px-4 bg-white border border-primary text-primary rounded-full text-[16px] font-medium flex justify-center items-center hover:bg-blue-50 transition-colors">
                 แชท
             </button>
         </div>
@@ -152,30 +152,27 @@
 
                 const bottomActions = document.getElementById('bottom-actions');
                 
-                // ⚠️ อัปเดตปุ่มในแต่ละสเตปใหม่
                 if (newStep === 1) {
-                    // Screen 1: หน้าเลือกเวลา แสดงปุ่ม Next, โทร, แชท
                     bottomActions.innerHTML = `
-                        <button class="w-full p-4 bg-primary text-white rounded-[20px] text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="validateStep1()">Next</button>
+                        <button class="w-full py-3.5 px-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="validateStep1()">Next</button>
                         <div class="flex gap-3 w-full mt-1">
-                            <a href="tel:0957356302" class="flex-1 p-3.5 bg-white border border-primary text-primary rounded-[20px] text-[16px] font-medium flex justify-center items-center gap-2 hover:bg-blue-50 transition-colors">
+                            <a href="tel:0957356302" class="flex-1 py-3.5 px-4 bg-white border border-primary text-primary rounded-full text-[16px] font-medium flex justify-center items-center gap-2 hover:bg-blue-50 transition-colors">
                                 <span>จองคิวเวลาอื่น</span>
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                             </a>
-                            <button onclick="if(typeof liff !== 'undefined' && liff.isInClient()) liff.closeWindow();" class="w-[90px] p-3.5 bg-white border border-primary text-primary rounded-[20px] text-[16px] font-medium flex justify-center items-center hover:bg-blue-50 transition-colors">
+                            <button onclick="if(typeof liff !== 'undefined' && liff.isInClient()) liff.closeWindow();" class="w-[90px] py-3.5 px-4 bg-white border border-primary text-primary rounded-full text-[16px] font-medium flex justify-center items-center hover:bg-blue-50 transition-colors">
                                 แชท
                             </button>
                         </div>
                     `;
                 } else if (newStep === 2) {
-                    // Screen 2: หน้าใส่เบอร์ แสดงปุ่มยืนยัน และ Cancel
+                    // ปรับแต่งปุ่มให้โค้งมนแบบเต็ม (rounded-full) ตามรูป ref และเปลี่ยนสี
                     bottomActions.innerHTML = `
-                        <button id="btn-next-step2" class="w-full p-4 bg-primary text-white rounded-[20px] text-[17px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="validateStep2()">ยืนยันการจอง</button>
-                        <button class="w-full p-4 bg-gray-200 text-gray-500 rounded-[20px] text-[17px] font-medium hover:bg-gray-300 transition-colors mt-1" onclick="myStepper.prev()">กลับไปแก้ไขเวลา</button>
+                        <button id="btn-next-step2" class="w-full py-3.5 px-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="validateStep2()">ยืนยันการจองคิว</button>
+                        <button class="w-full py-3.5 px-4 bg-[#e5e7eb] text-gray-400 rounded-full text-[17px] font-medium hover:bg-gray-300 transition-colors mt-1" onclick="myStepper.prev()">กลับไปแก้ไขเวลา</button>
                     `;
                 } else if (newStep === 3) {
-                    // Screen 3: หน้าสำเร็จ
-                    bottomActions.innerHTML = `<button class="w-full p-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="closeAndSendMessage()">ยืนยันและปิดหน้าต่าง</button>`;
+                    bottomActions.innerHTML = `<button class="w-full py-3.5 px-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="closeAndSendMessage()">ยืนยันและปิดหน้าต่าง</button>`;
                 }
             }
         });
@@ -322,23 +319,21 @@
         bookingForm.time = timeStr;
     }
 
-    // ⚠️ โลจิกปุ่มถูกสลับ: validateStep1 ตอนนี้คือหน้าเลือกเวลา
     function validateStep1() {
         if(!bookingForm.time) {
             alert("กรุณาเลือกรอบเวลาก่อนดำเนินการต่อ");
             return;
         }
         
-        // ใส่ข้อมูลสรุปลงในหน้า 2 ก่อนเปลี่ยนไปหน้า 2
+        // ⚠️ ปรับแก้ให้ตรงตามดีไซน์: แสดงข้อความเป็นตัวหนา
         document.getElementById('booking-preview').innerHTML = 
-            `บริการ: <span class="text-black">${bookingForm.service}</span><br>
-             วันที่: <span class="text-black">${bookingForm.date}</span><br>
-             เวลา: <span class="text-black">${bookingForm.time} น.</span>`;
+            `<p>บริการ: <span class="font-bold text-black">${bookingForm.service}</span></p>
+             <p>วันที่: <span class="font-bold text-black">${bookingForm.date}</span></p>
+             <p>เวลา: <span class="font-bold text-black">${bookingForm.time} น.</span></p>`;
              
         myStepper.next();
     }
 
-    // ⚠️ โลจิกปุ่มถูกสลับ: validateStep2 ตอนนี้คือการตรวจเบอร์และบันทึกลงฐานข้อมูล
     function validateStep2() {
         const phone = document.getElementById('phone-input').value.trim();
         if(!phone) {
@@ -363,17 +358,19 @@
         .then(res => {
             if(res.status === "success") {
                 document.getElementById('summary-text').innerText = 
-                    `เบอร์: ${bookingForm.phone}\nบริการ: ${bookingForm.service}\nวันที่: ${bookingForm.date} เวลา ${bookingForm.time}`;
+                    `เบอร์: ${bookingForm.phone}
+บริการ: ${bookingForm.service}
+วันที่: ${bookingForm.date} เวลา ${bookingForm.time}`;
                 myStepper.next(); 
             } else {
                 alert("เกิดข้อผิดพลาด: " + res.message);
-                btnNext.innerText = "ยืนยันการจอง";
+                btnNext.innerText = "ยืนยันการจองคิว";
                 btnNext.disabled = false;
             }
         })
         .catch(error => {
             alert("บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่");
-            btnNext.innerText = "ยืนยันการจอง";
+            btnNext.innerText = "ยืนยันการจองคิว";
             btnNext.disabled = false;
         });
     }
@@ -383,7 +380,10 @@
             liff.sendMessages([
                 {
                     type: 'text',
-                    text: `ยืนยันการจองคิวค่ะ 🎉\nบริการ: ${bookingForm.service}\nวันที่: ${bookingForm.date}\nเวลา: ${bookingForm.time} น.`
+                    text: `ยืนยันการจองคิวค่ะ 🎉
+บริการ: ${bookingForm.service}
+วันที่: ${bookingForm.date}
+เวลา: ${bookingForm.time} น.`
                 }
             ]).then(() => {
                 liff.closeWindow(); 

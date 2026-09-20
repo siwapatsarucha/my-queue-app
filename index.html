@@ -56,8 +56,11 @@
     <div class="screen flex flex-col p-5 flex-grow pb-[100px] overflow-y-auto" id="screen1">
         
         <!-- การ์ด 1: ปฏิทิน -->
-        <div class="content-card">
-            <div id="calendar-container" class="flex justify-between items-center text-center"></div>
+        <div class="content-card flex flex-col gap-2">
+            <!-- 🌟 ส่วนที่เพิ่มใหม่: พื้นที่แสดง เดือน/ปี -->
+            <div id="calendar-header" class="text-left text-gray-500 font-bold text-[19px] px-1 tracking-wide mt-1"></div>
+            
+            <div id="calendar-container" class="flex justify-between items-center text-center mt-2"></div>
         </div>
         
         <!-- การ์ด 2: บริการ -->
@@ -218,12 +221,35 @@
         const container = document.getElementById('calendar-container');
         container.innerHTML = '';
         
+        // 🌟 ส่วนที่เพิ่มใหม่: คำนวณและแสดงผล เดือน/ปี จากข้อมูลวันแรก
+        const header = document.getElementById('calendar-header');
+        if (shopData.dates && shopData.dates.length > 0 && header) {
+            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            let firstDateStr = shopData.dates[0].fullDate;
+            let monthIndex = 0;
+            let year = 0;
+
+            // ดึงตัวเลขเดือนและปี ออกมาจากวันที่ (รองรับทั้งแบบ 2026-08-29 และ 29/08/2026)
+            if (firstDateStr.includes('-')) {
+                const parts = firstDateStr.split('-');
+                year = parseInt(parts[0], 10);
+                monthIndex = parseInt(parts[1], 10) - 1;
+            } else if (firstDateStr.includes('/')) {
+                const parts = firstDateStr.split('/');
+                year = parseInt(parts[2], 10);
+                monthIndex = parseInt(parts[1], 10) - 1;
+            }
+            
+            if (year < 2500) year += 543; // แปลง ค.ศ. เป็น พ.ศ. อัตโนมัติ
+            header.innerHTML = `${thaiMonths[monthIndex]} ${year}`;
+        }
+
         const closedDates = shopData.closedDays ? shopData.closedDays.map(cd => cd.dateStr) : [];
 
         shopData.dates.forEach(d => {
             const isClosed = closedDates.includes(d.fullDate);
             const wrapper = document.createElement('div');
-            wrapper.className = "flex flex-col items-center gap-1";
+            wrapper.className = "flex flex-col items-center gap-1.5";
             
             if (isClosed) {
                 wrapper.innerHTML = `

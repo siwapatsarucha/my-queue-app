@@ -24,6 +24,10 @@
         @layer components {
             .step-item.active .step-circle, .step-item.completed .step-circle { @apply bg-primary; }
             .step-item.active .step-text, .step-item.completed .step-text { @apply text-primary; }
+
+            /* 🟢 เพิ่มโค้ด 2 บรรทัดนี้ เพื่อแก้ปัญหาวงกลมไม่ตรงกัน */
+            .step-item { @apply justify-start !important; }
+            .step-text { @apply min-h-[40px] pt-1 !important; }
             
             .chip { @apply px-5 py-2.5 bg-grayLight rounded-full text-[13px] text-gray-600 cursor-pointer transition-colors duration-200 border border-transparent shadow-sm; }
             .chip.active { @apply bg-primary text-white shadow-md border-primary; }

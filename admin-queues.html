@@ -21,8 +21,15 @@
 
 <div class="w-full max-w-[400px] min-h-screen bg-[#f4f5f7] relative flex flex-col border-x border-gray-100">
     
-    <div class="bg-white pt-6 pb-4 rounded-b-3xl shadow-sm mb-6 z-10">
-        <h1 class="text-[22px] font-bold text-center text-gray-800 mb-6">คิวที่ลูกค้าจอง</h1>
+    <div class="bg-white pt-6 pb-4 rounded-b-3xl shadow-sm mb-6 z-10 sticky top-0">
+        <div class="flex justify-between items-center px-6 mb-5">
+            <h1 class="text-[22px] font-bold text-gray-800 m-0">คิวที่ลูกค้าจอง</h1>
+            <!-- ปุ่มรีเฟรชข้อมูล -->
+            <button onclick="fetchBookings()" class="text-primary text-sm font-medium flex items-center gap-1 hover:text-blue-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                รีเฟรช
+            </button>
+        </div>
 
         <div class="flex justify-center gap-2 px-4">
             <button id="btn-latest" onclick="switchTab('latest')" class="px-4 py-2 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors">ล่าสุด</button>
@@ -39,7 +46,7 @@
 </div>
 
 <script>
-    // ⚠️ ใส่ Web App URL อันล่าสุดของคุณที่นี่
+    // ⚠️ นำ Web App URL อันใหม่ที่เพิ่ง Deploy มาใส่ตรงนี้นะครับ
     const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
     
     let allBookings = [];
@@ -50,6 +57,7 @@
     });
 
     function fetchBookings() {
+        document.getElementById('queue-container').innerHTML = `<p class="text-center text-gray-400 mt-10">กำลังโหลดข้อมูล...</p>`;
         fetch(API_URL + "?action=getAllBookings")
             .then(response => response.json())
             .then(data => {
@@ -77,7 +85,6 @@
         renderQueues();
     }
 
-    // ฟังก์ชันช่วยแปลง dateStr, timeStr เป็น Date Object
     function getBookingDateObj(dateStr, timeStr) {
         if (!dateStr || !timeStr) return null;
         const dateParts = dateStr.split('/');
@@ -102,6 +109,29 @@
         return new Date() > queueDateTime;
     }
 
+    // 🌟 ฟังก์ชันใหม่: สำหรับให้แอดมินกดยกเลิกคิว
+    function adminCancelQueue(rowNumber) {
+        if(!confirm("คุณต้องการ 'ยกเลิก' คิวนี้ใช่หรือไม่?")) return;
+        
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'cancelQueue',
+                row: rowNumber
+            })
+        })
+        .then(response => response.json())
+        .then(res => {
+            if(res.status === "success") {
+                alert("ยกเลิกคิวสำเร็จ");
+                fetchBookings(); // โหลดข้อมูลใหม่เพื่ออัปเดตหน้าจอ
+            } else {
+                alert("เกิดข้อผิดพลาด: " + res.message);
+            }
+        })
+        .catch(error => alert("ไม่สามารถยกเลิกคิวได้ กรุณาลองใหม่"));
+    }
+
     function renderQueues() {
         const container = document.getElementById('queue-container');
         container.innerHTML = ''; 
@@ -109,15 +139,11 @@
         let filteredBookings = [];
 
         if (currentTab === 'latest') {
-            // "ล่าสุด": กรองคิวที่ "ยังไม่เลยเวลา" และ "ไม่ยกเลิก" และเรียงจากที่เพิ่งจองเข้ามา
             filteredBookings = allBookings
                 .filter(b => b.status !== 'ยกเลิก' && !isTimePassed(b.date, b.time))
                 .reverse();
         } else if (currentTab === 'upcoming') {
-            // "ใกล้ถึงเวลา": กรองคิวที่ "ยังไม่ยกเลิก" และ "ยังไม่เลยเวลา"
             filteredBookings = allBookings.filter(b => b.status !== 'ยกเลิก' && !isTimePassed(b.date, b.time));
-            
-            // ⚠️ เรียงลำดับตามเวลาใกล้สุด (จากปัจจุบันไปอนาคต)
             filteredBookings.sort((a, b) => {
                 let dateA = getBookingDateObj(a.date, a.time);
                 let dateB = getBookingDateObj(b.date, b.time);
@@ -125,35 +151,42 @@
                 return 0;
             });
         } else if (currentTab === 'cancelled') {
-            // "คิวยกเลิก"
             filteredBookings = allBookings.filter(b => b.status === 'ยกเลิก').reverse();
         } else if (currentTab === 'all') {
-            // ⚠️ "ทั้งหมด"
             filteredBookings = [...allBookings].reverse();
         }
 
         if (filteredBookings.length === 0) {
-            container.innerHTML = `<p class="text-center text-gray-400 mt-10">ยังไม่มีคิวจอง</p>`;
+            container.innerHTML = `<p class="text-center text-gray-400 mt-10">ไม่มีรายการคิว</p>`;
             return;
         }
 
         filteredBookings.forEach(q => {
             const card = document.createElement('div');
-            card.className = "bg-white p-5 rounded-xl shadow-sm border border-gray-50 flex flex-col gap-2";
+            card.className = "bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col gap-2";
             
-            let statusColor = q.status === 'ยกเลิก' ? 'text-red-500 bg-red-50' : 'text-green-500 bg-green-50';
+            let statusColor = q.status === 'ยกเลิก' ? 'text-red-500 bg-red-50' : 'text-green-600 bg-green-50';
+            
+            // 🌟 สร้างปุ่มยกเลิก เฉพาะคิวที่ยังไม่ถูกยกเลิก
+            let actionHtml = '';
+            if (q.status !== 'ยกเลิก') {
+                actionHtml = `
+                    <div class="mt-3 pt-3 border-t border-gray-100">
+                        <button onclick="adminCancelQueue(${q.row})" class="w-full py-2 bg-red-50 text-red-500 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors">ยกเลิกคิวนี้</button>
+                    </div>
+                `;
+            }
             
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-1">
-                    <span class="font-semibold text-gray-800 text-[15px]">${q.date} | ${q.time}</span>
-                    <span class="text-[10px] px-2 py-1 rounded-md ${statusColor} font-medium">${q.status}</span>
+                    <span class="font-bold text-gray-800 text-[16px]">${q.date} | ${q.time} น.</span>
+                    <span class="text-[11px] px-2.5 py-1 rounded-md ${statusColor} font-medium">${q.status}</span>
                 </div>
-                <div class="text-sm text-gray-800 flex justify-between font-medium">
-                    <span>บริการ: ${q.service}</span>
+                <div class="text-[14px] text-gray-600 flex flex-col gap-1 mt-1">
+                    <span class="flex justify-between"><span>บริการ:</span> <span class="font-medium text-gray-800">${q.service}</span></span>
+                    <span class="flex justify-between"><span>เบอร์โทร:</span> <a href="tel:${q.phone}" class="text-primary font-medium">${q.phone}</a></span>
                 </div>
-                <div class="text-sm text-gray-800 flex justify-between font-medium">
-                    <span>เบอร์โทร: <a href="tel:${q.phone}" class="text-primary font-normal">${q.phone}</a></span>
-                </div>
+                ${actionHtml}
             `;
             container.appendChild(card);
         });

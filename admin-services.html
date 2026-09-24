@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตั้งค่าบริการ (Admin)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Kanit', 'sans-serif'] },
+                    colors: { 
+                        primary: '#3b82f6', 
+                        bgLight: '#f4f5f7',
+                        inputBg: '#e8efff' 
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 flex justify-center m-0 p-0 font-sans text-gray-800">
+
+<!-- หน้าจอ Loading -->
+<div id="loading-overlay" class="fixed inset-0 bg-white/90 z-50 flex flex-col justify-center items-center">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+    <p class="text-gray-500 text-sm" id="loading-text">กำลังโหลดข้อมูล...</p>
+</div>
+
+<div class="w-full max-w-[400px] min-h-screen bg-bgLight relative flex flex-col border-x border-gray-100">
+    
+    <!-- Header -->
+    <div class="pt-10 pb-4 px-5 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm">
+        <button onclick="goBack()" class="w-8 h-8 rounded-full border border-gray-800 flex items-center justify-center hover:bg-gray-100 transition-colors">
+            <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <h1 class="text-[17px] font-medium text-gray-800 m-0 text-center flex-1">ตั้งค่าบริการ</h1>
+        <div class="w-8"></div>
+    </div>
+
+    <!-- พื้นที่เนื้อหา -->
+    <div class="px-5 flex-grow pb-[120px] flex flex-col gap-5 mt-6">
+        
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-50">
+            <div class="flex justify-between items-center mb-5">
+                <span class="text-sm text-gray-800 font-medium">รายการบริการทั้งหมด</span>
+                <button onclick="addService()" class="bg-[#2a73ff] text-white text-[11px] px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-700 transition-colors shadow-sm">
+                    <span>+</span> เพิ่มบริการ
+                </button>
+            </div>
+            
+            <div id="services-list" class="flex flex-col gap-2">
+                <!-- รายการบริการจะถูกเรนเดอร์ที่นี่ -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Action -->
+    <div class="fixed bottom-0 left-0 w-full p-5 bg-bgLight flex justify-center pb-8 z-20">
+        <div class="w-full max-w-[400px]">
+            <button onclick="saveServices()" class="w-full py-3.5 bg-[#4285f4] text-white rounded-2xl text-[17px] hover:bg-blue-600 transition-colors font-medium shadow-md">
+                บันทึกข้อมูลบริการ
+            </button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZbfP5tDU1uw8AWnl2ps7VyJCyjp7Hucc",
+      authDomain: "usnailsclub-booking.firebaseapp.com",
+      projectId: "usnailsclub-booking",
+      storageBucket: "usnailsclub-booking.firebasestorage.app",
+      messagingSenderId: "468456730848",
+      appId: "1:468456730848:web:3894014fd37776bd176085"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let servicesData = [];
+
+    // ผูกฟังก์ชันเข้ากับ window
+    window.goBack = () => window.history.back();
+    window.addService = () => {
+        servicesData.push("บริการใหม่");
+        renderServices();
+    };
+    window.removeService = (index) => {
+        if(confirm("แน่ใจหรือไม่ว่าต้องการลบบริการนี้?")) {
+            servicesData.splice(index, 1);
+            renderServices();
+        }
+    };
+    window.updateService = (index, value) => {
+        servicesData[index] = value.trim();
+    };
+    window.saveServices = saveServices;
+
+    document.addEventListener("DOMContentLoaded", loadServices);
+
+    async function loadServices() {
+        showLoading("กำลังโหลดข้อมูล...");
+        try {
+            const docRef = doc(db, "settings", "shopConfig");
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists() && docSnap.data().services) {
+                servicesData = docSnap.data().services;
+            } else {
+                // ค่าตั้งต้นถ้ายังไม่เคยบันทึก
+                servicesData = ["ทำเล็บเจล", "ต่อเล็บ PVC", "สปามือ/เท้า", "ถอดเล็บ", "เพ้นท์เล็บ"];
+            }
+            renderServices();
+            hideLoading();
+        } catch (error) {
+            console.error(error);
+            alert("ไม่สามารถดึงข้อมูลได้");
+            hideLoading();
+        }
+    }
+
+    function renderServices() {
+        const container = document.getElementById('services-list');
+        container.innerHTML = '';
+
+        if(servicesData.length === 0) {
+            container.innerHTML = '<p class="text-center text-sm text-gray-400 py-4">ยังไม่มีบริการในระบบ</p>';
+            return;
+        }
+
+        servicesData.forEach((srv, index) => {
+            container.innerHTML += `
+                <div class="flex items-center justify-between py-2 border-b border-gray-200/60 last:border-0">
+                    <input type="text" value="${srv}" onchange="updateService(${index}, this.value)" 
+                           class="flex-1 bg-inputBg text-gray-800 text-[15px] font-medium rounded-xl px-4 py-2.5 outline-none border border-transparent focus:border-primary transition-colors">
+                    
+                    <button onclick="removeService(${index})" class="text-red-400 hover:text-red-600 ml-3 p-2 bg-red-50 rounded-full">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+            `;
+        });
+    }
+
+    async function saveServices() {
+        // กรองค่าว่างออกก่อนบันทึก
+        const cleanedServices = servicesData.filter(srv => srv !== "");
+        
+        if(cleanedServices.length === 0) {
+            alert("ต้องมีอย่างน้อย 1 บริการครับ");
+            return;
+        }
+
+        showLoading("กำลังบันทึกข้อมูล...");
+        try {
+            const docRef = doc(db, "settings", "shopConfig");
+            await setDoc(docRef, {
+                services: cleanedServices
+            }, { merge: true }); // ใช้ merge: true เพื่อไม่ให้ข้อมูลวันเวลาหาย
+            
+            alert("บันทึกข้อมูลบริการเรียบร้อยแล้ว!");
+            hideLoading();
+            goBack();
+        } catch (error) {
+            console.error(error);
+            alert("บันทึกข้อมูลไม่สำเร็จ");
+            hideLoading();
+        }
+    }
+
+    function showLoading(text) { document.getElementById('loading-text').innerText = text; document.getElementById('loading-overlay').classList.remove('hidden'); }
+    function hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); }
+</script>
+</body>
+</html>

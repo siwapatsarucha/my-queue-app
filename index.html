@@ -90,7 +90,6 @@
 
     <!-- Bottom Actions -->
     <div id="bottom-actions" class="absolute bottom-0 left-0 w-full p-5 bg-bgLight box-border flex flex-col gap-3">
-        <!-- ⚠️ ใส่ปุ่มเริ่มต้นของ Step 1 ไว้ใน HTML เลย -->
         <button class="w-full py-3.5 px-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="validateStep1()">Next</button>
         <div class="flex gap-3 w-full mt-1">
             <a href="tel:0957356302" class="flex-1 py-3.5 px-4 bg-white border border-primary text-primary rounded-full text-[16px] font-medium flex justify-center items-center gap-2 hover:bg-blue-50 transition-colors">
@@ -107,12 +106,12 @@
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="./stepper.js"></script>
 
-<!-- ⚠️ เปลี่ยนเป็น Module เพื่อรองรับ Firebase -->
+<!-- Firebase SDK -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
-    // 1. ใส่ค่า Config ของคุณที่นี่
+    // ค่า Config ของคุณ
     const firebaseConfig = {
       apiKey: "AIzaSyAZbfP5tDU1uw8AWnl2ps7VyJCyjp7Hucc",
       authDomain: "usnailsclub-booking.firebaseapp.com",
@@ -122,32 +121,23 @@
       appId: "1:468456730848:web:3894014fd37776bd176085"
     };
 
-    // เปิดใช้งาน Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const LIFF_ID = "2011391523-fqHvpw34"; // แก้ไขเป็น LIFF ID ของหน้าจองคิวลูกค้า
 
-    const LIFF_ID = "2011391523-fqHvpw34";
-
-    // 🌟 2. ตั้งค่าข้อมูลร้าน (แก้ตรงนี้แทน Google Sheets)
-    const SHOP_CONFIG = {
-        services: ["ทำเล็บเจล", "ต่อเล็บ PVC", "สปามือ/เท้า", "ถอดเล็บ", "เพ้นท์เล็บ"],
-        times: [
-            { timeStr: "10.00-11.00น.", maxQueue: 2 },
-            { timeStr: "11.00-12.00น.", maxQueue: 2 },
-            { timeStr: "13.00-14.00น.", maxQueue: 2 },
-            { timeStr: "14.00-15.00น.", maxQueue: 2 },
-            { timeStr: "15.00-16.00น.", maxQueue: 2 },
-            { timeStr: "16.00-17.00น.", maxQueue: 2 },
-            { timeStr: "17.00-18.00น.", maxQueue: 2 }
-        ],
-        daysToGenerate: 14 // จำนวนวันที่ให้จองล่วงหน้า
-    };
+    // 🌟 ตัวแปรเก็บข้อมูลจาก Firebase Settings
+    let globalTimes = [];
+    let dailyTimes = {};
+    let closedDaysData = [];
+    
+    // ตั้งค่าบริการและจำนวนวันล่วงหน้า (ส่วนนี้ตั้งค่าไว้ในโค้ดได้เลย)
+    const SHOP_SERVICES = ["ทำเล็บเจล", "ต่อเล็บ PVC", "สปามือ/เท้า", "ถอดเล็บ", "เพ้นท์เล็บ"];
+    const DAYS_TO_GENERATE = 14; 
 
     let shopData = { dates: [] };
     let bookingForm = { phone: '', date: '', service: '', time: '', lineUserId: '' };
-    let realTimeBookings = []; // เก็บข้อมูลคิวทั้งหมดในระบบ
+    let realTimeBookings = []; 
 
-    // ตั้งค่า Global Functions ให้ HTML เรียกใช้ได้
     window.selectService = selectService;
     window.selectDate = selectDate;
     window.selectTime = selectTime;
@@ -161,7 +151,7 @@
                 if (liff.isInClient() || liff.isLoggedIn()) {
                     liff.getProfile().then(profile => {
                         bookingForm.lineUserId = profile.userId;
-                    }).catch(err => console.error("Error getting profile:", err));
+                    }).catch(err => console.error("Error profile:", err));
                 }
             })
             .catch((err) => console.error("LIFF Init Error: ", err));
@@ -187,9 +177,7 @@
                                 <span>โทรสอบถาม</span>
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                             </a>
-                            <button onclick="if(typeof liff !== 'undefined' && liff.isInClient()) liff.closeWindow();" class="w-[90px] py-3.5 px-4 bg-white border border-primary text-primary rounded-full text-[16px] font-medium flex justify-center items-center hover:bg-blue-50 transition-colors">
-                                แชท
-                            </button>
+                            <button onclick="if(typeof liff !== 'undefined' && liff.isInClient()) liff.closeWindow();" class="w-[90px] py-3.5 px-4 bg-white border border-primary text-primary rounded-full text-[16px] font-medium flex justify-center items-center hover:bg-blue-50 transition-colors">แชท</button>
                         </div>
                     `;
                 } else if (newStep === 2) {
@@ -203,25 +191,48 @@
             }
         });
 
-        initAppLocally();
-        startRealtimeListener();
+        // ดึงข้อมูลการตั้งค่าร้านค้าก่อนโหลดปฏิทิน
+        fetchShopConfig();
     });
 
-    function initAppLocally() {
-        // สร้างวันที่ล่วงหน้า
+    // 🌟 ดึงข้อมูลจากแอดมินมาใช้งาน
+    async function fetchShopConfig() {
+        try {
+            const docRef = doc(db, "settings", "shopConfig");
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                globalTimes = data.defaultTimes || [];
+                dailyTimes = data.dailyTimes || {};
+                closedDaysData = data.closedDays || [];
+            }
+            
+            initCalendar();
+            startRealtimeListener(); 
+        } catch (error) {
+            console.error("Error fetching config:", error);
+            alert("ไม่สามารถดึงข้อมูลวันและเวลาได้");
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+    }
+
+    function initCalendar() {
         const dates = [];
         const today = new Date();
         const dayNames = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
         
-        for (let i = 0; i < SHOP_CONFIG.daysToGenerate; i++) {
+        for (let i = 0; i < DAYS_TO_GENERATE; i++) {
             let d = new Date(today);
             d.setDate(d.getDate() + i);
-            let fullDate = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+            let fullDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+            
+            // เช็คว่าวันนั้นถูกแอดมินสั่ง "ปิดร้าน" ไว้หรือเปล่า
             dates.push({
                 fullDate: fullDate,
                 dateNum: d.getDate().toString(),
                 dayStr: dayNames[d.getDay()],
-                isClosed: false // ตั้งให้ร้านเปิดทุกวันก่อน
+                isClosed: closedDaysData.includes(fullDate) 
             });
         }
         shopData.dates = dates;
@@ -229,17 +240,22 @@
         
         renderServices();
         renderCalendar();
-        if (shopData.dates.length > 0) selectDate(shopData.dates[0].fullDate);
+        
+        // ค้นหาวันแรกที่ร้านไม่ได้ปิด
+        const firstAvailableDate = shopData.dates.find(d => !d.isClosed);
+        if (firstAvailableDate) {
+            selectDate(firstAvailableDate.fullDate);
+        } else {
+            document.getElementById('times-container').innerHTML = '<p class="w-full text-center text-red-500">ขออภัยค่ะ ร้านปิดให้บริการในช่วงนี้</p>';
+        }
     }
 
-    // 🌟 3. รับข้อมูลจาก Firebase แบบ Real-time
     function startRealtimeListener() {
         onSnapshot(collection(db, "bookings"), (snapshot) => {
             realTimeBookings = [];
             snapshot.forEach((doc) => {
                 realTimeBookings.push(doc.data());
             });
-            // รีเฟรชปุ่มเวลา เพื่อล็อกคิวทันทีถ้ามีคนจองเต็ม!
             if(bookingForm.date) renderTimes(bookingForm.date);
         });
     }
@@ -247,14 +263,14 @@
     function renderServices() {
         const container = document.getElementById('services-container');
         container.innerHTML = '';
-        SHOP_CONFIG.services.forEach((srv, index) => {
+        SHOP_SERVICES.forEach((srv, index) => {
             const div = document.createElement('div');
             div.className = `chip ${index === 0 ? 'active' : ''}`;
             div.innerText = srv;
             div.onclick = () => selectService(div, srv);
             container.appendChild(div);
         });
-        if(SHOP_CONFIG.services.length > 0) bookingForm.service = SHOP_CONFIG.services[0];
+        if(SHOP_SERVICES.length > 0) bookingForm.service = SHOP_SERVICES[0];
     }
 
     function renderCalendar() {
@@ -274,19 +290,48 @@
         shopData.dates.forEach(d => {
             const wrapper = document.createElement('div');
             wrapper.className = "flex flex-col items-center gap-1.5 min-w-[44px]";
-            wrapper.innerHTML = `
-                <div class="cal-day-text">${d.dayStr}</div>
-                <div class="cal-date" id="date-${d.fullDate.replace(/\//g, '-')}" onclick="selectDate('${d.fullDate}')">${d.dateNum}</div>
-            `;
+            
+            // ถ้าร้านปิด ให้แสดงป้ายสีแดงและกดไม่ได้
+            if (d.isClosed) {
+                wrapper.innerHTML = `
+                    <div class="cal-day-text text-red-400">ปิด</div>
+                    <div class="cal-date disabled">${d.dateNum}</div>
+                `;
+            } else {
+                wrapper.innerHTML = `
+                    <div class="cal-day-text">${d.dayStr}</div>
+                    <div class="cal-date" id="date-${d.fullDate.replace(/\//g, '-')}" onclick="selectDate('${d.fullDate}')">${d.dateNum}</div>
+                `;
+            }
             container.appendChild(wrapper);
         });
+    }
+
+    // ฟังก์ชันคำนวณรอบเวลาทั้งหมดของวันนั้นๆ
+    function getTimesForDate(dateStr) {
+        let baseTimes = JSON.parse(JSON.stringify(globalTimes));
+        let currentDaily = dailyTimes[dateStr] || [];
+        
+        let mergedMap = new Map();
+        baseTimes.forEach(t => mergedMap.set(t.timeStr, t));
+        
+        currentDaily.forEach(t => {
+            mergedMap.set(t.timeStr, t);
+        });
+        
+        // คืนค่าเฉพาะคิวที่แอดมินเปิดใช้งาน (isActive: true)
+        let mergedArray = Array.from(mergedMap.values()).filter(t => t.isActive).sort((a, b) => {
+            let timeA = parseFloat(a.timeStr.replace(/[^0-9.]/g, ''));
+            let timeB = parseFloat(b.timeStr.replace(/[^0-9.]/g, ''));
+            return timeA - timeB;
+        });
+        return mergedArray;
     }
 
     function renderTimes(selectedDateFull) {
         const container = document.getElementById('times-container');
         container.innerHTML = '';
         
-        // กรองข้อมูลเฉพาะวันที่เลือก และคิวที่ยังไม่ถูกยกเลิก
         const dateBookings = realTimeBookings.filter(b => b.date === selectedDateFull && b.status !== 'ยกเลิก');
         
         const now = new Date();
@@ -296,12 +341,18 @@
                         now.getMonth() === selectedDate.getMonth() &&
                         now.getDate() === selectedDate.getDate();
 
-        SHOP_CONFIG.times.forEach(t => {
-            // นับว่าคิวเวลานี้มีคนจองไปกี่คนแล้ว
+        // 🌟 ดึงข้อมูลรอบเวลาที่คำนวณมาแล้ว (อิงจากที่แอดมินตั้งค่า)
+        const timesForToday = getTimesForDate(selectedDateFull);
+
+        if (timesForToday.length === 0) {
+            container.innerHTML = '<p class="w-full text-center text-gray-400 mt-4">ไม่มีรอบเวลาให้บริการในวันนี้</p>';
+            return;
+        }
+
+        timesForToday.forEach(t => {
             const bookedCount = dateBookings.filter(b => b.time === t.timeStr).length;
             let isDisabled = bookedCount >= t.maxQueue; 
 
-            // ตรวจสอบว่าเลยเวลาหรือยัง (สำหรับวันนี้)
             if (isToday && !isDisabled) {
                 const timeMatch = t.timeStr.match(/(\d{1,2})[.:](\d{2})/);
                 if (timeMatch) {
@@ -324,7 +375,6 @@
             container.appendChild(div);
         });
         
-        // ถ้าคิวที่เลือกไว้โดนแย่งจองไปแล้ว ให้เคลียร์ค่าทิ้ง
         if (bookingForm.time) {
             const isStillAvailable = Array.from(container.children).some(el => el.innerText === bookingForm.time && !el.classList.contains('disabled'));
             if (!isStillAvailable) bookingForm.time = '';
@@ -365,7 +415,6 @@
         window.myStepper.next();
     }
 
-    // 🌟 4. บันทึกข้อมูลลง Firebase
     async function validateStep2() {
         const phone = document.getElementById('phone-input').value.trim();
         if(!phone) {
@@ -380,7 +429,6 @@
         btnNext.disabled = true;
 
         try {
-            // ส่งข้อมูลขึ้น Firebase
             await addDoc(collection(db, "bookings"), {
                 phone: bookingForm.phone,
                 service: bookingForm.service,
@@ -388,7 +436,7 @@
                 time: bookingForm.time,
                 lineUserId: bookingForm.lineUserId || "ไม่ระบุ",
                 status: "รอรับบริการ",
-                createdAt: serverTimestamp() // บันทึกเวลาที่กดจอง
+                createdAt: serverTimestamp() 
             });
             
             document.getElementById('summary-text').innerText = 
@@ -396,7 +444,7 @@
             window.myStepper.next(); 
 
         } catch (error) {
-            console.error("Error adding document: ", error);
+            console.error("Error:", error);
             alert("บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่");
             btnNext.innerText = "ยืนยันการจองคิว";
             btnNext.disabled = false;

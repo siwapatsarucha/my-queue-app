@@ -39,8 +39,6 @@
         </button>
         <h1 class="text-[17px] font-medium text-gray-800 m-0 text-center flex-1">ตั้งค่าคิว</h1>
         <div class="w-8"></div>
-
-        <!-- ⚠️ ปุ่มเฟือง (เพิ่มใหม่แทนที่ div เปล่า) -->
         <button onclick="window.location.href='admin-default.html'" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">
             <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -49,7 +47,6 @@
         </button>
     </div>
     
-
     <!-- พื้นที่เนื้อหา -->
     <div class="px-5 flex-grow pb-[120px] flex flex-col gap-5 mt-6">
         
@@ -95,20 +92,49 @@
 
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-<script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
+<!-- ⚠️ เปลี่ยนมาใช้ Firebase SDK แบบ Module -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+    // ใส่ค่า Config ของคุณ
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZbfP5tDU1uw8AWnl2ps7VyJCyjp7Hucc",
+      authDomain: "usnailsclub-booking.firebaseapp.com",
+      projectId: "usnailsclub-booking",
+      storageBucket: "usnailsclub-booking.firebasestorage.app",
+      messagingSenderId: "468456730848",
+      appId: "1:468456730848:web:3894014fd37776bd176085"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     const LIFF_ID = "2011391523-QXNptpyw";
     const adminLineIds = [
         "Uc15870aef60973959938d48d6cdac1da", 
         "Uf446e4361cea597d9ab87746949c31bc"  
     ];
 
-    let globalTimes = []; // เทมเพลตเวลาเริ่มต้น
-    let dailyTimes = {};  // เก็บข้อมูลเวลาแยกตามวัน
+    let globalTimes = []; 
+    let dailyTimes = {};  
     let closedDaysData = []; 
     
     let datesList = [];
     let selectedDate = '';
+
+    // ผูกฟังก์ชันเข้ากับ window เพื่อให้ HTML (onclick, onchange) เรียกใช้ได้
+    window.loadData = loadData;
+    window.closeApp = closeApp;
+    window.selectDate = selectDate;
+    window.addTimeSlot = addTimeSlot;
+    window.removeTimeSlot = removeTimeSlot;
+    window.toggleActiveTime = toggleActiveTime;
+    window.toggleCloseDay = toggleCloseDay;
+    window.saveAdminSettings = saveAdminSettings;
+    
+    window.updateTimeStr = function(index, value) { dailyTimes[selectedDate][index].timeStr = inputToTimeFormat(value); }
+    window.updateMaxQueue = function(index, value) { dailyTimes[selectedDate][index].maxQueue = parseInt(value) || 1; }
 
     document.addEventListener("DOMContentLoaded", () => {
         liff.init({ liffId: LIFF_ID }).then(() => {
@@ -120,33 +146,49 @@
                         document.body.innerHTML = `<div class="flex flex-col h-screen items-center justify-center bg-white p-5 text-center"><h1 class="text-4xl mb-4">⛔</h1><h2 class="text-xl text-red-500 font-medium mb-2">ไม่มีสิทธิ์เข้าถึง</h2></div>`;
                     }
                 });
-            } else { loadData(); } // สำหรับทดสอบบนเบราว์เซอร์
+            } else { loadData(); }
         }).catch(err => console.error("LIFF Init Error:", err));
     });
 
-    function loadData() {
+    async function loadData() {
         showLoading("กำลังโหลดข้อมูล...");
-        fetch(API_URL + "?action=getShopData")
-            .then(response => response.json())
-            .then(data => {
-                // เก็บเวลาเริ่มต้นเป็นเทมเพลต
-                // ของใหม่ (เติมคำว่า default เข้าไป)
-globalTimes = (data.defaultTimes || []).map(t => ({
-                    timeStr: t.timeStr, maxQueue: t.maxQueue, isActive: t.isActive !== undefined ? t.isActive : true 
-                }));
-                
-                // ถ้าฝั่งหลังบ้านรองรับการดึง dailyTimes แล้ว ให้ใช้ค่าจากหลังบ้าน
+        try {
+            // 🌟 ดึงข้อมูลร้านจาก Firebase Document
+            const docRef = doc(db, "settings", "shopConfig");
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                globalTimes = data.defaultTimes || generateDefaultTimes();
                 dailyTimes = data.dailyTimes || {};
-                closedDaysData = data.closedDays ? data.closedDays.map(d => d.dateStr) : []; 
-                
-                initCalendar();
-                selectDate(datesList[0].fullDate); // เลือกวันแรกอัตโนมัติ
-                hideLoading();
-            })
-            .catch(error => {
-                alert("ไม่สามารถดึงข้อมูลได้");
-                hideLoading();
-            });
+                closedDaysData = data.closedDays || [];
+            } else {
+                // ถ้ายังไม่เคยบันทึก ให้ใช้ค่าเริ่มต้น
+                globalTimes = generateDefaultTimes();
+                dailyTimes = {};
+                closedDaysData = [];
+            }
+            
+            initCalendar();
+            selectDate(datesList[0].fullDate); 
+            hideLoading();
+        } catch (error) {
+            console.error(error);
+            alert("ไม่สามารถดึงข้อมูลได้");
+            hideLoading();
+        }
+    }
+
+    function generateDefaultTimes() {
+        return [
+            { timeStr: "10.00-11.00น.", maxQueue: 2, isActive: true },
+            { timeStr: "11.00-12.00น.", maxQueue: 2, isActive: true },
+            { timeStr: "13.00-14.00น.", maxQueue: 2, isActive: true },
+            { timeStr: "14.00-15.00น.", maxQueue: 2, isActive: true },
+            { timeStr: "15.00-16.00น.", maxQueue: 2, isActive: true },
+            { timeStr: "16.00-17.00น.", maxQueue: 2, isActive: true },
+            { timeStr: "17.00-18.00น.", maxQueue: 2, isActive: true }
+        ];
     }
 
     // --- สร้างปฏิทิน 7 วัน ---
@@ -158,7 +200,8 @@ globalTimes = (data.defaultTimes || []).map(t => ({
         for(let i=0; i<7; i++) {
             let d = new Date(today);
             d.setDate(today.getDate() + i);
-            let fullDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            // 🌟 แก้ฟอร์แมตวันที่ให้ตรงกับระบบจองลูกค้า (DD/MM/YYYY)
+            let fullDateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
             datesList.push({
                 fullDate: fullDateStr,
                 dayStr: dayNames[d.getDay()],
@@ -188,22 +231,16 @@ globalTimes = (data.defaultTimes || []).map(t => ({
     function selectDate(dateStr) {
         selectedDate = dateStr;
         
-        // 1. ดึงเทมเพลต Default มาเตรียมไว้เป็นฐาน
         let baseTimes = JSON.parse(JSON.stringify(globalTimes));
         let currentDaily = dailyTimes[selectedDate] || [];
         
         let mergedMap = new Map();
-        
-        // นำค่า Default มาวางยืนพื้นก่อน พร้อมแปะป้ายว่า isDefault = true
         baseTimes.forEach(t => mergedMap.set(t.timeStr, { ...t, isDefault: true }));
         
-        // นำค่ารายวันที่บันทึกไว้มาเขียนทับ
         currentDaily.forEach(t => {
             if (mergedMap.has(t.timeStr)) {
-                // ถ้าตรงกับ Default เดิม ให้คงสถานะ isDefault ไว้
                 mergedMap.set(t.timeStr, { ...t, isDefault: true });
             } else {
-                // ถ้าเป็นเวลาใหม่ที่เพิ่งกด + เพิ่มในวันนี้
                 mergedMap.set(t.timeStr, { ...t, isDefault: false });
             }
         });
@@ -241,22 +278,19 @@ globalTimes = (data.defaultTimes || []).map(t => ({
     function renderTimesList() {
         const container = document.getElementById('times-list');
         container.innerHTML = '';
-
         let currentTimes = dailyTimes[selectedDate] || [];
 
         currentTimes.forEach((t, index) => {
             const isLast = index === currentTimes.length - 1;
             const borderClass = isLast ? "" : "border-b border-gray-200/60";
             let timeVal = timeToInputFormat(t.timeStr);
-            
             let isDefault = t.isDefault;
             
-            // คืนค่าสีพื้นหลังปกติ (bg-inputBg) แต่ล็อกไม่ให้แก้เวลา (readonly)
+            // ใช้ฟังก์ชัน updateTimeStr และ updateMaxQueue ที่เราผูกกับ window ไว้
             let timeInputAttr = isDefault 
                 ? `readonly class="w-[85px] bg-inputBg text-gray-800 text-sm font-medium rounded-full px-2 py-1 outline-none text-center pointer-events-none opacity-90"` 
-                : `class="w-[85px] bg-inputBg text-gray-800 text-sm font-medium rounded-full px-2 py-1 outline-none text-center cursor-pointer" onchange="dailyTimes['${selectedDate}'][${index}].timeStr = inputToTimeFormat(this.value)"`;
+                : `class="w-[85px] bg-inputBg text-gray-800 text-sm font-medium rounded-full px-2 py-1 outline-none text-center cursor-pointer" onchange="updateTimeStr(${index}, this.value)"`;
 
-            // ป้ายบอกว่า Default เอาไปวางซ้อน (absolute) บนไอคอนนาฬิกา
             let clockIconWithBadge = `
                 <div class="relative flex items-center justify-center w-6 h-6 mr-1.5">
                     <svg class="w-[20px] h-[20px] text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -264,7 +298,6 @@ globalTimes = (data.defaultTimes || []).map(t => ({
                 </div>
             `;
 
-            // แสดงปุ่มลบปกติ แต่ถ้าเป็น Default กดแล้วจะแจ้งเตือนแทน
             let deleteBtn = isDefault 
                 ? `<button onclick="alert('คิว Default ไม่สามารถลบทิ้งได้ครับ\\nหากต้องการปิดรับคิวเวลานี้ ให้กดปิดสวิตช์ (สีเทา) แทนครับ')" class="text-red-500 opacity-70 hover:text-red-700 ml-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>` 
                 : `<button onclick="removeTimeSlot(${index})" class="text-red-500 hover:text-red-700 ml-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>`;
@@ -281,12 +314,11 @@ globalTimes = (data.defaultTimes || []).map(t => ({
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
                         </svg>
-                        <input type="number" value="${t.maxQueue}" onchange="dailyTimes['${selectedDate}'][${index}].maxQueue = parseInt(this.value)||1" class="w-[38px] bg-inputBg rounded-full text-center text-sm font-medium text-gray-800 outline-none py-1" min="1">
+                        <input type="number" value="${t.maxQueue}" onchange="updateMaxQueue(${index}, this.value)" class="w-[38px] bg-inputBg rounded-full text-center text-sm font-medium text-gray-800 outline-none py-1" min="1">
                         
                         <button onclick="toggleActiveTime(${index})" class="w-9 h-[22px] rounded-full relative transition-colors duration-300 ml-1 ${t.isActive ? 'bg-[#2a73ff]' : 'bg-gray-300'}">
                             <div class="w-[18px] h-[18px] bg-white rounded-full shadow-sm absolute top-[2px] transition-all duration-300 ${t.isActive ? 'right-[2px]' : 'left-[2px]'}"></div>
                         </button>
-
                         ${deleteBtn}
                     </div>
                 </div>
@@ -321,7 +353,7 @@ globalTimes = (data.defaultTimes || []).map(t => ({
         const toggleCircle = document.getElementById('toggle-close-circle');
 
         if (isClosed) {
-            toggleBtn.classList.replace('bg-gray-300', 'bg-red-500'); // สีแดงเมื่อปิดร้าน
+            toggleBtn.classList.replace('bg-gray-300', 'bg-red-500'); 
             toggleCircle.classList.replace('left-[2px]', 'right-[2px]');
         } else {
             toggleBtn.classList.replace('bg-red-500', 'bg-gray-300');
@@ -329,30 +361,28 @@ globalTimes = (data.defaultTimes || []).map(t => ({
         }
     }
 
-    // --- บันทึกข้อมูล ---
-    function saveAdminSettings() {
+    // --- 🌟 บันทึกข้อมูลลง Firebase ---
+    async function saveAdminSettings() {
         showLoading("กำลังบันทึกข้อมูล...");
-        fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'updateDailySettings', // ⚠️ ส่ง action ใหม่ไปหลังบ้าน
+        try {
+            const docRef = doc(db, "settings", "shopConfig");
+            // ใช้ setDoc เพื่อบันทึกทับ/สร้างใหม่ ถ้ายังไม่มีเอกสาร
+            await setDoc(docRef, {
+                defaultTimes: globalTimes,
                 dailyTimes: dailyTimes,
                 closedDays: closedDaysData 
-            })
-        })
-        .then(response => response.json())
-        .then(res => {
-            if(res.status === "success") { alert("บันทึกข้อมูลเรียบร้อยแล้ว!"); } 
-            else { alert("เกิดข้อผิดพลาด: " + res.message); }
+            }, { merge: true }); // merge: true เพื่อไม่ให้ข้อมูลอื่น(เช่น Services) ถูกลบหายไป
+            
+            alert("บันทึกข้อมูลเรียบร้อยแล้ว!");
             hideLoading();
-        })
-        .catch(error => {
+        } catch (error) {
+            console.error(error);
             alert("บันทึกข้อมูลไม่สำเร็จ");
             hideLoading();
-        });
+        }
     }
 
-    function closeApp() { if (liff.isInClient()) liff.closeWindow(); }
+    function closeApp() { if (typeof liff !== 'undefined' && liff.isInClient()) liff.closeWindow(); }
     function showLoading(text) { document.getElementById('loading-text').innerText = text; document.getElementById('loading-overlay').classList.remove('hidden'); }
     function hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); }
 </script>

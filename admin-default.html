@@ -68,29 +68,74 @@
     </div>
 </div>
 
-<script>
-    // ⚠️ ใส่ Web App URL อันล่าสุด
-    const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
+<!-- ⚠️ เปลี่ยนมาใช้ Firebase SDK แบบ Module -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+    // ใส่ค่า Config ของคุณ
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZbfP5tDU1uw8AWnl2ps7VyJCyjp7Hucc",
+      authDomain: "usnailsclub-booking.firebaseapp.com",
+      projectId: "usnailsclub-booking",
+      storageBucket: "usnailsclub-booking.firebasestorage.app",
+      messagingSenderId: "468456730848",
+      appId: "1:468456730848:web:3894014fd37776bd176085"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
     let defaultTimesData = [];
+
+    // ผูกฟังก์ชันเข้ากับ window เพื่อให้ HTML เรียกใช้ได้
+    window.goBack = goBack;
+    window.addDefaultTimeSlot = addDefaultTimeSlot;
+    window.removeDefaultTimeSlot = removeDefaultTimeSlot;
+    window.toggleDefaultActive = toggleDefaultActive;
+    window.saveDefaultSettings = saveDefaultSettings;
+    window.updateDefaultTimeStr = function(index, value) { defaultTimesData[index].timeStr = inputToTimeFormat(value); }
+    window.updateDefaultMaxQueue = function(index, value) { defaultTimesData[index].maxQueue = parseInt(value) || 1; }
 
     document.addEventListener("DOMContentLoaded", () => {
         loadDefaultData();
     });
 
-    function loadDefaultData() {
+    async function loadDefaultData() {
         showLoading("กำลังโหลดข้อมูล...");
-        fetch(API_URL + "?action=getShopData")
-            .then(response => response.json())
-            .then(data => {
-                defaultTimesData = data.defaultTimes || [];
-                renderDefaultTimesList();
-                hideLoading();
-            })
-            .catch(error => {
-                alert("ไม่สามารถดึงข้อมูลได้");
-                hideLoading();
-            });
+        try {
+            // ดึงข้อมูลจาก Firebase Document
+            const docRef = doc(db, "settings", "shopConfig");
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                // ถ้ามีข้อมูล defaultTimes ให้ใช้ข้อมูลนั้น ถ้าไม่มีใช้ค่าเริ่มต้น
+                defaultTimesData = data.defaultTimes || generateDefaultTimes();
+            } else {
+                defaultTimesData = generateDefaultTimes();
+            }
+            
+            renderDefaultTimesList();
+            hideLoading();
+        } catch (error) {
+            console.error(error);
+            alert("ไม่สามารถดึงข้อมูลได้");
+            hideLoading();
+        }
+    }
+
+    // ค่าเริ่มต้นหาก Firebase ว่างเปล่า
+    function generateDefaultTimes() {
+        return [
+            { timeStr: "10.00-11.00น.", maxQueue: 2, isActive: true },
+            { timeStr: "11.00-12.00น.", maxQueue: 2, isActive: true },
+            { timeStr: "13.00-14.00น.", maxQueue: 2, isActive: true },
+            { timeStr: "14.00-15.00น.", maxQueue: 2, isActive: true },
+            { timeStr: "15.00-16.00น.", maxQueue: 2, isActive: true },
+            { timeStr: "16.00-17.00น.", maxQueue: 2, isActive: true },
+            { timeStr: "17.00-18.00น.", maxQueue: 2, isActive: true }
+        ];
     }
 
     function timeToInputFormat(timeStr) {
@@ -119,6 +164,13 @@
             return;
         }
 
+        // จัดเรียงเวลาจากน้อยไปมาก
+        defaultTimesData.sort((a, b) => {
+            let timeA = parseFloat(a.timeStr.replace(/[^0-9.]/g, ''));
+            let timeB = parseFloat(b.timeStr.replace(/[^0-9.]/g, ''));
+            return timeA - timeB;
+        });
+
         defaultTimesData.forEach((t, index) => {
             const isLast = index === defaultTimesData.length - 1;
             const borderClass = isLast ? "" : "border-b border-gray-200/60";
@@ -128,7 +180,7 @@
                 <div class="flex items-center justify-between py-3 ${borderClass}">
                     <div class="flex items-center gap-2">
                         <svg class="w-[18px] h-[18px] text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <input type="time" value="${timeVal}" onchange="defaultTimesData[${index}].timeStr = inputToTimeFormat(this.value)" class="w-[85px] bg-inputBg text-gray-800 text-sm font-medium rounded-full px-2 py-1 outline-none text-center cursor-pointer">
+                        <input type="time" value="${timeVal}" onchange="updateDefaultTimeStr(${index}, this.value)" class="w-[85px] bg-inputBg text-gray-800 text-sm font-medium rounded-full px-2 py-1 outline-none text-center cursor-pointer">
                         <span class="text-sm text-gray-800">น.</span>
                     </div>
                     
@@ -136,7 +188,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
                         </svg>
-                        <input type="number" value="${t.maxQueue}" onchange="defaultTimesData[${index}].maxQueue = parseInt(this.value)||1" class="w-[38px] bg-inputBg rounded-full text-center text-sm font-medium text-gray-800 outline-none py-1" min="1">
+                        <input type="number" value="${t.maxQueue}" onchange="updateDefaultMaxQueue(${index}, this.value)" class="w-[38px] bg-inputBg rounded-full text-center text-sm font-medium text-gray-800 outline-none py-1" min="1">
                         
                         <button onclick="toggleDefaultActive(${index})" class="w-9 h-[22px] rounded-full relative transition-colors duration-300 ml-1 ${t.isActive ? 'bg-[#2a73ff]' : 'bg-gray-300'}">
                             <div class="w-[18px] h-[18px] bg-white rounded-full shadow-sm absolute top-[2px] transition-all duration-300 ${t.isActive ? 'right-[2px]' : 'left-[2px]'}"></div>
@@ -155,34 +207,36 @@
         defaultTimesData.push({ timeStr: "10.00น.", maxQueue: 1, isActive: true });
         renderDefaultTimesList();
     }
+    
     function removeDefaultTimeSlot(index) {
         defaultTimesData.splice(index, 1);
         renderDefaultTimesList();
     }
 
-    function saveDefaultSettings() {
+    // 🌟 บันทึกข้อมูลลง Firebase
+    async function saveDefaultSettings() {
         showLoading("กำลังบันทึกค่า Default...");
-        fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'updateDefaultSettings',
+        try {
+            const docRef = doc(db, "settings", "shopConfig");
+            // ใช้ merge: true เพื่อบันทึกแค่ defaultTimes โดยไม่ทับข้อมูลรายวันหรือข้อมูลวันหยุด
+            await setDoc(docRef, {
                 defaultTimes: defaultTimesData
-            })
-        })
-        .then(response => response.json())
-        .then(res => {
-            if(res.status === "success") { alert("บันทึกค่า Default เรียบร้อยแล้ว!"); } 
-            else { alert("เกิดข้อผิดพลาด: " + res.message); }
+            }, { merge: true }); 
+            
+            alert("บันทึกค่า Default เรียบร้อยแล้ว!");
             hideLoading();
-        })
-        .catch(error => {
+            
+            // กลับไปหน้าก่อนหน้าอัตโนมัติ
+            setTimeout(() => { goBack(); }, 500);
+            
+        } catch (error) {
+            console.error(error);
             alert("บันทึกข้อมูลไม่สำเร็จ");
             hideLoading();
-        });
+        }
     }
 
     function goBack() {
-        // ให้กลับไปหน้าก่อนหน้า (เช่น หน้าตั้งค่ารายวัน)
         window.history.back();
     }
 

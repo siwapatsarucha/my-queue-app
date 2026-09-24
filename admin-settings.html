@@ -28,14 +28,57 @@
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
     <p class="text-gray-500 text-sm" id="loading-text">กำลังโหลดข้อมูลระบบ...</p>
 </div>
+<!-- Hamburger Menu Overlay (ซ่อนเป็นค่าเริ่มต้น) -->
+<div id="side-menu" class="fixed inset-0 bg-black/50 z-50 hidden transition-opacity duration-300 opacity-0">
+    <!-- แถบเมนูด้านซ้าย (Drawer) -->
+    <div id="side-drawer" class="fixed top-0 left-0 w-[260px] h-full bg-white shadow-xl transform -translate-x-full transition-transform duration-300 flex flex-col">
+        
+        <!-- Header เมนู -->
+        <div class="p-5 border-b border-gray-100 flex justify-between items-center">
+            <span class="font-bold text-gray-800 text-[17px]">เมนูแอดมิน</span>
+            <button onclick="toggleMenu()" class="text-gray-400 hover:text-gray-800">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <!-- รายการหน้าตั้งค่าต่างๆ -->
+        <div class="flex-grow flex flex-col p-4 gap-2">
+            <a href="admin-settings.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-primary transition-colors font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                ตั้งค่าคิวรายวัน
+            </a>
+            <a href="admin-default.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-primary transition-colors font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                ตั้งค่าเวลา Default
+            </a>
+            <a href="admin-services.html" class="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-primary transition-colors font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+                ตั้งค่าบริการ
+            </a>
+        </div>
+
+        <!-- ปุ่มปิดหน้าต่าง -->
+        <div class="p-4 border-t border-gray-100">
+            <button onclick="closeApp()" class="w-full py-3 bg-red-50 text-red-500 rounded-xl font-medium flex justify-center items-center gap-2 hover:bg-red-100 transition-colors">
+                ปิดหน้าต่างแอดมิน
+            </button>
+        </div>
+    </div>
+    
+    <!-- พื้นที่สีดำจางๆ สำหรับคลิกเพื่อปิดเมนู -->
+    <div class="absolute inset-0 z-[-1]" onclick="toggleMenu()"></div>
+</div>
 
 <!-- โครงสร้างหลัก -->
 <div class="w-full max-w-[400px] min-h-screen bg-bgLight relative flex flex-col border-x border-gray-100">
     
     <!-- Header -->
     <div class="pt-10 pb-4 px-5 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm">
-        <button onclick="closeApp()" class="w-8 h-8 rounded-full border border-gray-800 flex items-center justify-center hover:bg-gray-100 transition-colors">
-            <svg class="w-5 h-5 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        <!-- ปุ่ม Hamburger Menu -->
+        <button onclick="toggleMenu()" class="w-8 h-8 rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors">
+            <svg class="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
         </button>
         <h1 class="text-[17px] font-medium text-gray-800 m-0 text-center flex-1">ตั้งค่าคิว</h1>
         <div class="w-8"></div>
@@ -385,6 +428,27 @@
     function closeApp() { if (typeof liff !== 'undefined' && liff.isInClient()) liff.closeWindow(); }
     function showLoading(text) { document.getElementById('loading-text').innerText = text; document.getElementById('loading-overlay').classList.remove('hidden'); }
     function hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); }
+    // ฟังก์ชันเปิด/ปิด Hamburger Menu
+    window.toggleMenu = function() {
+        const menu = document.getElementById('side-menu');
+        const drawer = document.getElementById('side-drawer');
+        
+        if (menu.classList.contains('hidden')) {
+            // เปิดเมนู
+            menu.classList.remove('hidden');
+            setTimeout(() => {
+                menu.classList.remove('opacity-0');
+                drawer.classList.remove('-translate-x-full');
+            }, 10);
+        } else {
+            // ปิดเมนู
+            menu.classList.add('opacity-0');
+            drawer.classList.add('-translate-x-full');
+            setTimeout(() => {
+                menu.classList.add('hidden');
+            }, 300);
+        }
+    };
 </script>
 </body>
 </html>

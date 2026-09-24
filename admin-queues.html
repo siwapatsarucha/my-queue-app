@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>รายการคิวลูกค้า (Admin)</title>
+    <title>รายการคิวลูกค้า (Firebase Real-time)</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -24,11 +24,14 @@
     <div class="bg-white pt-6 pb-4 rounded-b-3xl shadow-sm mb-6 z-10 sticky top-0">
         <div class="flex justify-between items-center px-6 mb-5">
             <h1 class="text-[22px] font-bold text-gray-800 m-0">คิวที่ลูกค้าจอง</h1>
-            <!-- ปุ่มรีเฟรชข้อมูล -->
-            <button onclick="fetchBookings()" class="text-primary text-sm font-medium flex items-center gap-1 hover:text-blue-700">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                รีเฟรช
-            </button>
+            <!-- สังเกตว่าปุ่มรีเฟรชหายไป เพราะเราไม่จำเป็นต้องใช้แล้ว! -->
+            <span class="text-green-500 text-xs font-medium flex items-center gap-1">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                Real-time
+            </span>
         </div>
 
         <div class="flex justify-center gap-2 px-4">
@@ -40,49 +43,68 @@
     </div>
 
     <div id="queue-container" class="px-5 pb-10 flex flex-col gap-4">
-        <p class="text-center text-gray-400 mt-10">กำลังโหลดข้อมูล...</p>
+        <p class="text-center text-gray-400 mt-10">กำลังเชื่อมต่อฐานข้อมูล...</p>
     </div>
 
 </div>
 
-<script>
-    // ⚠️ นำ Web App URL อันใหม่ที่เพิ่ง Deploy มาใส่ตรงนี้นะครับ
-    const API_URL = "https://script.google.com/macros/s/AKfycbwtCB6OjC7OWc9IyV5GRPdX6_TYIawm4OcCM8R2VDU84kcQlkNaf5tCIRSJ44rXct9tgQ/exec"; 
-    
+<!-- ⚠️ เปลี่ยนมาใช้ Firebase SDK แบบ Module แทน API_URL -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+    // ค่า Config ของคุณ
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZbfP5tDU1uw8AWnl2ps7VyJCyjp7Hucc",
+      authDomain: "usnailsclub-booking.firebaseapp.com",
+      projectId: "usnailsclub-booking",
+      storageBucket: "usnailsclub-booking.firebasestorage.app",
+      messagingSenderId: "468456730848",
+      appId: "1:468456730848:web:3894014fd37776bd176085"
+    };
+
+    // เปิดใช้งาน Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     let allBookings = [];
     let currentTab = 'upcoming'; 
 
-    document.addEventListener("DOMContentLoaded", () => {
-        fetchBookings();
+    // 🌟 หัวใจสำคัญ: ดึงข้อมูลแบบ Real-time ด้วย onSnapshot
+    onSnapshot(collection(db, "bookings"), (snapshot) => {
+        allBookings = [];
+        snapshot.forEach((doc) => {
+            // เก็บข้อมูลทั้งหมด พร้อมกับ ID ของเอกสารนั้นๆ
+            allBookings.push({ id: doc.id, ...doc.data() });
+        });
+        renderQueues(); 
     });
 
-    function fetchBookings() {
-        document.getElementById('queue-container').innerHTML = `<p class="text-center text-gray-400 mt-10">กำลังโหลดข้อมูล...</p>`;
-        fetch(API_URL + "?action=getAllBookings")
-            .then(response => response.json())
-            .then(data => {
-                allBookings = data;
-                renderQueues(); 
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                document.getElementById('queue-container').innerHTML = `<p class="text-center text-red-400 mt-10">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>`;
-            });
-    }
-
-    function switchTab(tabName) {
+    // เนื่องจากเราใช้ type="module" ฟังก์ชันที่เรียกผ่าน onclick ใน HTML ต้องผูกกับ window
+    window.switchTab = function(tabName) {
         currentTab = tabName;
-        
         const buttons = ['latest', 'upcoming', 'cancelled', 'all'];
         buttons.forEach(btn => {
             const el = document.getElementById(`btn-${btn}`);
             el.className = "px-4 py-2 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400 transition-colors";
         });
-
-        const activeBtn = document.getElementById(`btn-${tabName}`);
-        activeBtn.className = "px-4 py-2 rounded-full text-[13px] font-medium bg-primary text-white transition-colors shadow-sm";
-
+        document.getElementById(`btn-${tabName}`).className = "px-4 py-2 rounded-full text-[13px] font-medium bg-primary text-white transition-colors shadow-sm";
         renderQueues();
+    }
+
+    // 🌟 ฟังก์ชันยกเลิกคิว (ยิงตรงเข้า Firebase)
+    window.adminCancelQueue = async function(docId) {
+        if(!confirm("คุณต้องการ 'ยกเลิก' คิวนี้ใช่หรือไม่?")) return;
+        
+        try {
+            // อ้างอิงไปยังคิวที่ต้องการยกเลิก
+            const bookingRef = doc(db, "bookings", docId);
+            // สั่งอัปเดตสถานะ (หน้าเว็บจะอัปเดตอัตโนมัติทันทีที่โค้ดนี้ทำงานเสร็จ!)
+            await updateDoc(bookingRef, { status: "ยกเลิก" });
+        } catch (error) {
+            console.error("Error:", error);
+            alert("ไม่สามารถยกเลิกคิวได้ กรุณาลองใหม่");
+        }
     }
 
     function getBookingDateObj(dateStr, timeStr) {
@@ -92,7 +114,6 @@
             const qDay = parseInt(dateParts[0], 10);
             const qMonth = parseInt(dateParts[1], 10) - 1; 
             const qYear = parseInt(dateParts[2], 10);
-            
             const timeMatch = timeStr.match(/(\d{1,2})[.:](\d{2})/);
             if (timeMatch) {
                 const qHour = parseInt(timeMatch[1], 10);
@@ -109,29 +130,6 @@
         return new Date() > queueDateTime;
     }
 
-    // 🌟 ฟังก์ชันใหม่: สำหรับให้แอดมินกดยกเลิกคิว
-    function adminCancelQueue(rowNumber) {
-        if(!confirm("คุณต้องการ 'ยกเลิก' คิวนี้ใช่หรือไม่?")) return;
-        
-        fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'cancelQueue',
-                row: rowNumber
-            })
-        })
-        .then(response => response.json())
-        .then(res => {
-            if(res.status === "success") {
-                alert("ยกเลิกคิวสำเร็จ");
-                fetchBookings(); // โหลดข้อมูลใหม่เพื่ออัปเดตหน้าจอ
-            } else {
-                alert("เกิดข้อผิดพลาด: " + res.message);
-            }
-        })
-        .catch(error => alert("ไม่สามารถยกเลิกคิวได้ กรุณาลองใหม่"));
-    }
-
     function renderQueues() {
         const container = document.getElementById('queue-container');
         container.innerHTML = ''; 
@@ -139,9 +137,7 @@
         let filteredBookings = [];
 
         if (currentTab === 'latest') {
-            filteredBookings = allBookings
-                .filter(b => b.status !== 'ยกเลิก' && !isTimePassed(b.date, b.time))
-                .reverse();
+            filteredBookings = allBookings.filter(b => b.status !== 'ยกเลิก' && !isTimePassed(b.date, b.time)).reverse();
         } else if (currentTab === 'upcoming') {
             filteredBookings = allBookings.filter(b => b.status !== 'ยกเลิก' && !isTimePassed(b.date, b.time));
             filteredBookings.sort((a, b) => {
@@ -164,15 +160,14 @@
         filteredBookings.forEach(q => {
             const card = document.createElement('div');
             card.className = "bg-white p-5 rounded-2xl shadow-sm border border-gray-50 flex flex-col gap-2";
-            
             let statusColor = q.status === 'ยกเลิก' ? 'text-red-500 bg-red-50' : 'text-green-600 bg-green-50';
             
-            // 🌟 สร้างปุ่มยกเลิก เฉพาะคิวที่ยังไม่ถูกยกเลิก
             let actionHtml = '';
             if (q.status !== 'ยกเลิก') {
+                // สังเกตว่าเราส่ง q.id (Firebase Document ID) ไปแทนเลขแถว (Row)
                 actionHtml = `
                     <div class="mt-3 pt-3 border-t border-gray-100">
-                        <button onclick="adminCancelQueue(${q.row})" class="w-full py-2 bg-red-50 text-red-500 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors">ยกเลิกคิวนี้</button>
+                        <button onclick="adminCancelQueue('${q.id}')" class="w-full py-2 bg-red-50 text-red-500 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors">ยกเลิกคิวนี้</button>
                     </div>
                 `;
             }

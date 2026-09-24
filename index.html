@@ -130,8 +130,7 @@
     let dailyTimes = {};
     let closedDaysData = [];
     
-    // ตั้งค่าบริการและจำนวนวันล่วงหน้า (ส่วนนี้ตั้งค่าไว้ในโค้ดได้เลย)
-    const SHOP_SERVICES = ["ทำเล็บเจล", "ต่อเล็บ PVC", "สปามือ/เท้า", "ถอดเล็บ", "เพ้นท์เล็บ"];
+    // ตั้งค่าจำนวนวันล่วงหน้า (ส่วนนี้ตั้งค่าไว้ในโค้ดได้เลย)
     const DAYS_TO_GENERATE = 14; 
 
     let shopData = { dates: [] };
@@ -206,6 +205,10 @@
                 globalTimes = data.defaultTimes || [];
                 dailyTimes = data.dailyTimes || {};
                 closedDaysData = data.closedDays || [];
+                
+                // 🟢 เพิ่ม 2 บรรทัดนี้ เพื่อดึงบริการจาก Firebase
+                const fetchedServices = data.services || ["ทำเล็บเจล", "ต่อเล็บ PVC", "สปามือ/เท้า", "ถอดเล็บ", "เพ้นท์เล็บ"];
+                shopData.services = fetchedServices;
             }
             
             initCalendar();
@@ -263,14 +266,17 @@
     function renderServices() {
         const container = document.getElementById('services-container');
         container.innerHTML = '';
-        SHOP_SERVICES.forEach((srv, index) => {
+        
+        // 🟢 เปลี่ยนจาก SHOP_SERVICES เป็น shopData.services
+        shopData.services.forEach((srv, index) => {
             const div = document.createElement('div');
             div.className = `chip ${index === 0 ? 'active' : ''}`;
             div.innerText = srv;
             div.onclick = () => selectService(div, srv);
             container.appendChild(div);
         });
-        if(SHOP_SERVICES.length > 0) bookingForm.service = SHOP_SERVICES[0];
+        
+        if(shopData.services.length > 0) bookingForm.service = shopData.services[0];
     }
 
     function renderCalendar() {

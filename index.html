@@ -339,7 +339,7 @@
                         now.getMonth() === selectedDate.getMonth() &&
                         now.getDate() === selectedDate.getDate();
 
-        // 🌟 ดึงข้อมูลรอบเวลาที่คำนวณมาแล้ว (อิงจากที่แอดมินตั้งค่า)
+        // ดึงข้อมูลรอบเวลาที่คำนวณมาแล้ว (อิงจากที่แอดมินตั้งค่า)
         const timesForToday = getTimesForDate(selectedDateFull);
 
         if (timesForToday.length === 0) {
@@ -375,7 +375,14 @@
         
         if (bookingForm.time) {
             const isStillAvailable = Array.from(container.children).some(el => el.innerText === bookingForm.time && !el.classList.contains('disabled'));
-            if (!isStillAvailable) bookingForm.time = '';
+            
+            // 🌟 แก้ไขตรงนี้: เช็คว่าลูกค้ายังอยู่หน้าแรก (screen1) หรือไม่ 
+            const isScreen1Visible = document.getElementById('screen1').classList.contains('flex');
+            
+            // ถ้าเวลาไม่ว่างแล้ว และยังอยู่หน้าแรก ถึงจะเคลียร์ค่าเวลาทิ้ง
+            if (!isStillAvailable && isScreen1Visible) { 
+                bookingForm.time = ''; 
+            }
         }
     }
 

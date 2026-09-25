@@ -64,16 +64,22 @@
     <!-- 🌟 Screen 2 (ดีไซน์ใหม่): ใส่เบอร์โทรเพื่อยืนยัน -->
     <div class="screen hidden flex-col p-5 flex-grow pb-[180px] gap-4 mt-4" id="screen2">
         
-        <!-- ส่วน A: Lottie Animation -->
-        <div class="w-full flex justify-center items-center h-[180px]">
-            <iframe src="https://lottie.host/embed/386ee12b-e9f1-47fc-912d-70fb75469970/O0TO4mWgbM.lottie" class="w-full h-full border-none pointer-events-none" style="background: transparent;"></iframe>
-        </div>
+        <!-- Wrapper มัดรวม A กับกล่องน้ำเงินให้ติดกัน -->
+        <div class="flex flex-col w-full relative">
+            
+            <!-- ส่วน A: Lottie Animation -->
+            <!-- ปรับลดความสูงนิดหน่อย และใช้ -mb-4 ดึงให้ติดกับกล่องน้ำเงิน z-10 ให้อยู่ด้านบน -->
+            <div class="w-full flex justify-center items-center h-[150px] -mb-4 z-10 relative">
+                <iframe src="https://lottie.host/embed/386ee12b-e9f1-47fc-912d-70fb75469970/O0TO4mWgbM.lottie" class="w-full h-full border-none pointer-events-none" style="background: transparent;"></iframe>
+            </div>
 
-        <!-- กล่องข้อมูลคิว (Blue Card) -->
-        <div class="bg-[#dbeafe] rounded-3xl p-6 shadow-sm flex flex-col w-full">
-            <h3 class="text-[#1877f2] font-bold text-[20px] text-center mb-4">คิวที่คุณเลือก</h3>
-            <!-- ข้อมูลจะถูกดึงมาแทรกตรงนี้โดย JS และคงรูปแบบ font-bold ตามเดิม -->
-            <div class="text-left text-[15px] text-gray-800 flex flex-col gap-3 px-2" id="booking-preview"></div>
+            <!-- กล่องข้อมูลคิว (Blue Card) -->
+            <div class="bg-[#dbeafe] rounded-3xl p-6 shadow-sm flex flex-col w-full relative z-0 pt-8">
+                <h3 class="text-[#1877f2] font-bold text-[20px] text-center mb-4">คิวที่คุณเลือก</h3>
+                <!-- ข้อมูลจะถูกดึงมาแทรกตรงนี้โดย JS และคงรูปแบบ font-bold ตามเดิม -->
+                <div class="text-left text-[15px] text-gray-800 flex flex-col gap-3 px-2" id="booking-preview"></div>
+            </div>
+            
         </div>
 
         <!-- กล่องกรอกเบอร์โทร (White Card) -->

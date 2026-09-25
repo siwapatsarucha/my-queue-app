@@ -283,15 +283,7 @@
         const container = document.getElementById('calendar-container');
         container.innerHTML = '';
         
-        const header = document.getElementById('calendar-header');
-        if (shopData.dates && shopData.dates.length > 0 && header) {
-            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            const parts = shopData.dates[0].fullDate.split('/');
-            let year = parseInt(parts[2], 10);
-            let monthIndex = parseInt(parts[1], 10) - 1;
-            if (year < 2500) year += 543;
-            header.innerHTML = `${thaiMonths[monthIndex]} ${year}`;
-        }
+    
 
         shopData.dates.forEach(d => {
             const wrapper = document.createElement('div');
@@ -393,6 +385,17 @@
         bookingForm.service = serviceName;
     }
 
+    function updateMonthHeader(dateString) {
+        const header = document.getElementById('calendar-header');
+        if (!header) return;
+        const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const parts = dateString.split('/');
+        let year = parseInt(parts[2], 10);
+        let monthIndex = parseInt(parts[1], 10) - 1;
+        if (year < 2500) year += 543; // แปลงเป็น พ.ศ.
+        header.innerHTML = `${thaiMonths[monthIndex]} ${year}`;
+    }
+
     function selectDate(fullDate) {
         document.querySelectorAll('.cal-date').forEach(el => el.classList.remove('active'));
         const targetId = `date-${fullDate.replace(/\//g, '-')}`;
@@ -400,6 +403,7 @@
         if(targetElement) targetElement.classList.add('active');
         
         bookingForm.date = fullDate;
+        updateMonthHeader(fullDate);
         renderTimes(fullDate); 
     }
 

@@ -28,7 +28,7 @@
 <!-- โครงสร้างหลัก -->
 <div class="w-full max-w-[400px] min-h-screen bg-grayLight relative flex flex-col">
     
-    <!-- ⚠️ สร้างกล่องครอบ Header และ Tabs ให้อยู่ด้วยกันและตั้งเป็น Sticky -->
+    <!-- สร้างกล่องครอบ Header และ Tabs ให้อยู่ด้วยกันและตั้งเป็น Sticky -->
     <div class="sticky top-0 z-20 bg-white shadow-sm border-b border-gray-100">
         
         <!-- Header แบบใหม่ -->
@@ -58,13 +58,35 @@
 
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-<script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxKHkRpwH9qXAzyIaHq9hZKwYQS_YzB3pEkpAL-8A2x2Z-o8KU4ZvlIIL338KHRgt1Iog/exec"; 
+<!-- เปลี่ยนมาใช้ Firebase SDK แบบ Module -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+    import { getFirestore, collection, query, where, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+    // ค่า Config ของคุณ
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZbfP5tDU1uw8AWnl2ps7VyJCyjp7Hucc",
+      authDomain: "usnailsclub-booking.firebaseapp.com",
+      projectId: "usnailsclub-booking",
+      storageBucket: "usnailsclub-booking.firebasestorage.app",
+      messagingSenderId: "468456730848",
+      appId: "1:468456730848:web:3894014fd37776bd176085"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    
+    // ⚠️ ใส่ LIFF ID ของหน้า "คิวของฉัน"
     const LIFF_ID = "2011391523-5EBKsHZY";
 
     let lineUserId = "";
     let allQueues = [];
     let currentTab = 'upcoming';
+
+    // ผูกฟังก์ชันเข้ากับ window เพื่อให้ HTML เรียกใช้ได้
+    window.switchTab = switchTab;
+    window.cancelQueue = cancelQueue;
+    window.closeApp = closeApp;
 
     document.addEventListener("DOMContentLoaded", () => {
         liff.init({ liffId: LIFF_ID })
@@ -82,20 +104,37 @@
             .catch((err) => console.error("LIFF Init Error: ", err));
     });
 
+    // 🌟 ดึงข้อมูลจาก Firebase แบบ Real-time
     function loadMyQueues() {
         showLoading("กำลังโหลดข้อมูล...");
-        fetch(`${API_URL}?action=getMyQueues&lineUserId=${lineUserId}`)
-            .then(response => response.json())
-            .then(data => {
-                allQueues = processQueueData(data); // ประมวลผลเวลา
-                renderQueues();
-                hideLoading();
-            })
-            .catch(error => {
-                console.error("Error loading queues:", error);
-                alert("ไม่สามารถดึงข้อมูลได้");
-                hideLoading();
+        
+        // ค้นหาเฉพาะคิวที่เป็นของ LINE ID นี้
+        const q = query(collection(db, "bookings"), where("lineUserId", "==", lineUserId));
+        
+        // onSnapshot จะดึงข้อมูลให้ใหม่ทันทีที่มีการเปลี่ยนแปลง
+        onSnapshot(q, (snapshot) => {
+            let rawQueues = [];
+            snapshot.forEach((docSnap) => {
+                let data = docSnap.data();
+                data.id = docSnap.id; // เก็บ ID ไว้สำหรับอ้างอิงตอนยกเลิก
+                rawQueues.push(data);
             });
+
+            // เรียงลำดับตามเวลาที่จอง (อันเก่าสุดไปใหม่สุด)
+            rawQueues.sort((a, b) => {
+                let timeA = a.createdAt ? a.createdAt.toMillis() : 0;
+                let timeB = b.createdAt ? b.createdAt.toMillis() : 0;
+                return timeA - timeB;
+            });
+
+            allQueues = processQueueData(rawQueues);
+            renderQueues();
+            hideLoading();
+        }, (error) => {
+            console.error("Error loading queues:", error);
+            alert("ไม่สามารถดึงข้อมูลได้");
+            hideLoading();
+        });
     }
 
     // ฟังก์ชันคำนวณและอัปเดตสถานะ "เกินเวลา" อัตโนมัติ
@@ -103,14 +142,12 @@
         const now = new Date();
         return queues.map(q => {
             if (q.status === "รอรับบริการ") {
-                // แยกวันที่ (รูปแบบ dd/MM/yyyy)
                 const dateParts = q.date.split('/');
                 if (dateParts.length === 3) {
                     const qDay = parseInt(dateParts[0], 10);
                     const qMonth = parseInt(dateParts[1], 10) - 1;
                     const qYear = parseInt(dateParts[2], 10);
                     
-                    // ดึงเวลาชั่วโมงและนาที 
                     const timeMatch = q.time.match(/(\d{1,2})[.:](\d{2})/);
                     if (timeMatch) {
                         const qHour = parseInt(timeMatch[1], 10);
@@ -118,7 +155,6 @@
                         
                         const queueDateTime = new Date(qYear, qMonth, qDay, qHour, qMinute);
                         
-                        // ถ้าเวลาปัจจุบัน เลยเวลาของคิวไปแล้ว ให้เปลี่ยนเป็น "เกินเวลา"
                         if (now > queueDateTime) {
                             q.status = "เกินเวลา";
                         }
@@ -131,12 +167,10 @@
 
     function switchTab(tabName) {
         currentTab = tabName;
-        // รีเซ็ตปุ่มทั้งหมด
         ['latest', 'upcoming', 'cancelled', 'all'].forEach(tab => {
             const btn = document.getElementById(`tab-${tab}`);
             btn.className = "px-4 py-1.5 rounded-full text-[13px] font-medium bg-gray-100 text-gray-400";
         });
-        // ไฮไลต์ปุ่มที่เลือก
         document.getElementById(`tab-${tabName}`).className = "px-4 py-1.5 rounded-full text-[13px] font-medium bg-primary text-white shadow-sm";
         
         renderQueues();
@@ -147,7 +181,7 @@
         container.innerHTML = '';
 
         let filteredQueues = [];
-        // คัดลอก Array เพื่อไม่ให้ข้อมูลต้นฉบับพังเวลาใช้ reverse()
+        // reverse เพื่อให้คิวล่าสุดอยู่บนสุด
         const sortedQueues = [...allQueues].reverse(); 
 
         if (currentTab === 'latest') {
@@ -169,18 +203,21 @@
             const card = document.createElement('div');
             card.className = "bg-white p-5 rounded-3xl shadow-sm border border-gray-100 relative";
             
-            // กำหนดสีของป้ายสถานะ (Badge)
             let badgeHtml = '';
             let actionHtml = '';
             
             if (q.status === 'รอรับบริการ') {
                 badgeHtml = `<span class="text-[11px] bg-blue-50 text-primary px-3 py-1 rounded-md font-medium">รอรับบริการ</span>`;
-                actionHtml = `<button onclick="cancelQueue(${q.row})" class="w-full py-2.5 mt-4 bg-white text-red-500 text-sm font-medium rounded-xl hover:bg-red-50 transition-colors border border-red-200">ยกเลิกคิวนี้</button>`;
+                // ใช้ q.id ในการอ้างอิงเอกสาร Firebase
+                actionHtml = `<button onclick="cancelQueue('${q.id}')" class="w-full py-2.5 mt-4 bg-white text-red-500 text-sm font-medium rounded-xl hover:bg-red-50 transition-colors border border-red-200">ยกเลิกคิวนี้</button>`;
             } else if (q.status === 'ยกเลิก') {
                 badgeHtml = `<span class="text-[11px] bg-red-50 text-red-500 px-3 py-1 rounded-md font-medium">ยกเลิกแล้ว</span>`;
             } else if (q.status === 'เกินเวลา') {
                 badgeHtml = `<span class="text-[11px] bg-gray-100 text-gray-500 px-3 py-1 rounded-md font-medium">เกินเวลา/เสร็จสิ้น</span>`;
             }
+
+            // เช็คว่ามีคำว่า น. อยู่แล้วหรือไม่
+            const displayTime = q.time.includes('น.') ? q.time : q.time + ' น.';
 
             card.innerHTML = `
                 <div class="flex justify-between items-center mb-3">
@@ -193,7 +230,7 @@
                 </div>
                 <div class="text-sm text-gray-600 mb-1 leading-relaxed flex items-center gap-2">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span>เวลา: <span class="text-gray-800">${q.time} น.</span></span>
+                    <span>เวลา: <span class="text-gray-800">${displayTime}</span></span>
                 </div>
                 ${actionHtml}
             `;
@@ -201,28 +238,28 @@
         });
     }
 
-    function cancelQueue(rowNum) {
+    // 🌟 ฟังก์ชันยกเลิกคิว (อัปเดตสถานะใน Firebase)
+    async function cancelQueue(docId) {
         if(!confirm("ยืนยันการยกเลิกคิวนี้ใช่หรือไม่?")) return;
         showLoading("กำลังยกเลิกคิว...");
-        fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'cancelQueue', row: rowNum })
-        })
-        .then(response => response.json())
-        .then(res => {
-            if(res.status === "success") {
-                if (liff.isInClient()) {
-                    liff.sendMessages([{ type: 'text', text: 'แจ้งยกเลิกคิวเรียบร้อยแล้วค่ะ ❌' }])
-                        .then(() => loadMyQueues());
-                } else {
-                    loadMyQueues();
-                }
+        try {
+            const docRef = doc(db, "bookings", docId);
+            await updateDoc(docRef, { status: "ยกเลิก" });
+            
+            if (liff.isInClient()) {
+                // ส่งข้อความเข้าแชท แล้วปิดหน้าต่างหรือปล่อยให้ UI อัปเดตเอง
+                liff.sendMessages([{ type: 'text', text: 'แจ้งยกเลิกคิวเรียบร้อยแล้วค่ะ ❌' }])
+                    .then(() => hideLoading())
+                    .catch(() => hideLoading());
+            } else {
+                hideLoading();
             }
-        })
-        .catch(error => {
+            // 💡 ไม่ต้องเรียก loadMyQueues() ใหม่ เพราะ onSnapshot จะตรวจจับและรีเฟรชหน้าให้เองอัตโนมัติ!
+        } catch (error) {
+            console.error(error);
             alert("ยกเลิกคิวไม่สำเร็จ กรุณาลองใหม่");
             hideLoading();
-        });
+        }
     }
 
     function closeApp() {

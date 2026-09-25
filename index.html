@@ -7,8 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 🟢 เพิ่ม Script สำหรับรันภาพเคลื่อนไหว Lottie -->
-    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    
 
     <script>
         tailwind.config = {
@@ -71,8 +70,9 @@
             <!-- ช่อง A: ภาพเคลื่อนไหว Lottie -->
             <!-- ⚠️ หมายเหตุ: URL ของ src ใน lottie-player ต้องเป็นลิงก์ไฟล์ json ที่เข้าถึงได้จริงผ่านเว็บ 
                  (หากรันบน Google Script อาจจะต้องฝากไฟล์ json ไว้ที่ GitHub Pages หรือ Firebase Hosting แล้วนำลิงก์มาวาง) -->
-            <div class="w-full h-[170px] bg-[#e5e5e5] rounded-[8px] flex items-center justify-center overflow-hidden">
-                <lottie-player src="./animations/4c65d4b8-cda4-4975-8270-6e10c8c56173.json" background="transparent" speed="1" style="width: 100%; height: 100%;" loop autoplay></lottie-player>
+            <!-- ช่อง A: ภาพเคลื่อนไหว Lottie -->
+            <div class="w-full h-[170px] bg-[#e5e5e5] rounded-[8px] flex items-center justify-center overflow-hidden pointer-events-none">
+                <iframe src="https://lottie.host/embed/386ee12b-e9f1-47fc-912d-70fb75469970/O0TO4mWgbM.lottie" style="width: 100%; height: 100%; border: none;" scrolling="no"></iframe>
             </div>
 
             <!-- กล่องสีฟ้า: คิวที่คุณเลือก -->

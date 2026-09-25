@@ -407,15 +407,15 @@
         renderTimes(fullDate); 
     }
 
-    // ฟังก์ชันเมื่อลูกค้ากดเลือกเวลา
+    // 🌟 นำโค้ดนี้ไปวางทับฟังก์ชัน selectTime อันเดิม
     function selectTime(element, timeStr) {
-        // 1. ลบไฮไลต์ปุ่มเวลาอื่นออกให้หมด
-        document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('active', 'bg-primary', 'text-white'));
+        // 1. ลบสถานะ active จากปุ่มเวลาอื่นทั้งหมด
+        document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('active'));
         
-        // 2. ไฮไลต์ปุ่มที่ลูกค้าเพิ่งกด
-        element.classList.add('active', 'bg-primary', 'text-white');
+        // 2. ใส่สถานะ active ให้ปุ่มที่เพิ่งกด
+        element.classList.add('active');
         
-        // ⚠️ 3. จุดสำคัญ: ต้องบันทึกเวลาลงตัวแปร bookingForm ด้วย
+        // ⚠️ 3. บรรทัดนี้สำคัญมาก! เป็นการบันทึกเวลาที่ลูกค้ากดลงในระบบ
         bookingForm.time = timeStr; 
     }
 

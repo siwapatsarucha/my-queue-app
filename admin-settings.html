@@ -95,6 +95,7 @@
         
         <!-- การ์ด 1: ปฏิทินเลือกวัน -->
         <div class="bg-white rounded-3xl p-5 shadow-sm">
+            <div id="calendar-header" class="text-left text-gray-800 font-bold text-[17px] mb-4 pl-1"></div>
             <div id="calendar-days" class="flex justify-between items-center">
                 <!-- วันที่จะถูกสร้างด้วย JavaScript -->
             </div>
@@ -234,6 +235,18 @@
         ];
     }
 
+    // --- ฟังก์ชันอัปเดตชื่อเดือนแบบไดนามิก ---
+    function updateMonthHeader(dateString) {
+        const header = document.getElementById('calendar-header');
+        if (!header) return;
+        const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const parts = dateString.split('/');
+        let year = parseInt(parts[2], 10);
+        let monthIndex = parseInt(parts[1], 10) - 1;
+        if (year < 2500) year += 543; // แปลงปี ค.ศ. เป็น พ.ศ.
+        header.innerHTML = `${thaiMonths[monthIndex]} ${year}`;
+    }
+
     // --- สร้างปฏิทิน 7 วัน ---
     function initCalendar() {
         datesList = [];
@@ -296,6 +309,7 @@
 
         dailyTimes[selectedDate] = mergedArray;
 
+        updateMonthHeader(selectedDate);
         renderCalendar();
         renderTimesList();
         renderCloseDayToggle();

@@ -12,10 +12,9 @@
                 extend: {
                     fontFamily: { sans: ['Kanit', 'sans-serif'] },
                     colors: {
-                        primary: '#4285F4', /* ปรับสีฟ้าให้ใกล้เคียงภาพ */
-                        primaryHover: '#3367D6',
-                        stepBg: '#eef4ff', stepInactive: '#b0c4de', grayLight: '#F2F2F7',
-                        bgLight: '#F4F5F7'
+                        primary: '#4a88f7', primaryHover: '#3b76d9',
+                        stepBg: '#eef4ff', stepInactive: '#b0c4de', grayLight: '#f3f4f6',
+                        bgLight: '#f4f5f7'
                     }
                 }
             }
@@ -23,28 +22,20 @@
     </script>
     <style type="text/tailwindcss">
         @layer components {
-            /* ไม่ลบคลาส stepper ทิ้ง เพื่อไม่ให้กระทบโค้ดเดิม แต่จะถูกซ่อนไว้ */
             .step-item.active .step-circle, .step-item.completed .step-circle { @apply bg-primary; }
             .step-item.active .step-text, .step-item.completed .step-text { @apply text-primary; }
             .step-item { @apply justify-start !important; }
             .step-text { @apply min-h-[40px] pt-1 !important; }
-            
-            /* ปรับแต่ง UI ให้ตรงตามดีไซน์ใหม่ */
-            .chip { @apply px-4 py-2 bg-grayLight rounded-full text-[14px] text-gray-700 cursor-pointer transition-colors duration-200 border border-transparent; }
+            .chip { @apply px-5 py-2.5 bg-grayLight rounded-full text-[13px] text-gray-600 cursor-pointer transition-colors duration-200 border border-transparent shadow-sm; }
             .chip.active { @apply bg-primary text-white shadow-md border-primary; }
-            
-            /* เปลี่ยนเวลาให้เป็นทรงแคปซูล (rounded-full) ตามภาพ */
-            .time-slot { @apply px-5 py-2.5 bg-grayLight rounded-full text-[14px] text-gray-700 cursor-pointer transition-all; }
+            .time-slot { @apply px-4 py-2 bg-grayLight rounded-2xl text-[13px] text-gray-700 cursor-pointer transition-all shadow-sm; }
             .time-slot.active { @apply bg-primary text-white shadow-md; }
             .time-slot.disabled { @apply line-through text-gray-400 bg-gray-50 shadow-none cursor-not-allowed; pointer-events: none; }
-            
-            .cal-date { @apply w-11 h-11 rounded-full flex justify-center items-center text-[15px] cursor-pointer transition-all; }
+            .cal-date { @apply w-11 h-11 rounded-full flex justify-center items-center text-sm cursor-pointer transition-all; }
             .cal-date.active { @apply bg-primary text-white shadow-md font-medium; }
-            .cal-date.disabled { @apply bg-transparent text-gray-300 cursor-not-allowed; pointer-events: none; }
-            .cal-day-text { @apply text-[13px] text-gray-600 font-medium mb-1.5; }
-            
-            /* ปรับการ์ดให้มุมโค้งมนขึ้น (28px) ตามภาพอ้างอิง */
-            .content-card { @apply bg-white rounded-[28px] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] mb-4 border border-gray-50; }
+            .cal-date.disabled { @apply bg-transparent text-red-300 cursor-not-allowed; pointer-events: none; }
+            .cal-day-text { @apply text-xs text-gray-600 font-medium mb-2; }
+            .content-card { @apply bg-white rounded-3xl p-5 shadow-sm mb-4 border border-gray-50; }
         }
     </style>
 </head>
@@ -56,23 +47,22 @@
 </div>
 
 <div class="w-full max-w-[400px] h-screen bg-bgLight relative flex flex-col overflow-x-hidden border-x border-gray-100">
-    <!-- 🌟 ซ่อน Stepper โดยการใส่ class="hidden" -->
-    <div id="stepper-container" class="bg-bgLight hidden"></div>
+    <!-- ซ่อนแถบ Stepper โดยการใส่ class="hidden" -->
+    <div id="stepper-container" class="hidden"></div>
 
     <!-- Screen 1: เลือกวัน เวลา และบริการ -->
-    <div class="screen flex flex-col p-4 flex-grow pb-[140px] overflow-y-auto mt-2" id="screen1">
+    <div class="screen flex flex-col p-5 flex-grow pb-[140px] overflow-y-auto" id="screen1">
         <div class="content-card flex flex-col gap-2">
-            <!-- ปรับขนาดและสีฟอนต์เดือน/ปี ให้เหมือนภาพ -->
-            <div id="calendar-header" class="text-left text-gray-600 font-bold text-[22px] px-2 mt-1 tracking-wide"></div>
-            <div id="calendar-container" class="flex justify-between items-center text-center mt-4 overflow-x-auto gap-4 pb-2 px-1"></div>
+            <div id="calendar-header" class="text-left text-gray-600 font-bold text-[20px] px-1 tracking-wide mt-1"></div>
+            <div id="calendar-container" class="flex justify-between items-center text-center mt-2 overflow-x-auto gap-4 pb-2"></div>
         </div>
         
-        <div class="content-card pb-6">
+        <div class="content-card">
             <div id="services-container" class="flex flex-wrap gap-2.5"></div>
         </div>
         
-        <div class="content-card flex flex-col h-[180px] overflow-y-auto">
-            <div id="times-container" class="flex flex-wrap gap-3 content-start justify-start px-1"></div>
+        <div class="content-card flex flex-col h-[160px] overflow-y-auto">
+            <div id="times-container" class="flex flex-wrap gap-2.5 content-start"></div>
         </div>
     </div>
 
@@ -99,9 +89,9 @@
         </div>
     </div>
 
-    <!-- Bottom Actions -->
+    <!-- Bottom Actions (ค่าเริ่มต้นสำหรับหน้าแรก) -->
     <div id="bottom-actions" class="absolute bottom-0 left-0 w-full p-5 bg-bgLight box-border flex flex-col gap-3">
-        <!-- โครงสร้างเดิมจะถูกเขียนทับด้วย JavaScript ใน onStepChange -->
+        <!-- จะถูกจัดการโดย onStepChange ด้านล่าง -->
     </div>
 </div>
     
@@ -113,7 +103,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
     import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
 
-    // ค่า Config ของคุณ
     const firebaseConfig = {
       apiKey: "AIzaSyAZbfP5tDU1uw8AWnl2ps7VyJCyjp7Hucc",
       authDomain: "usnailsclub-booking.firebaseapp.com",
@@ -127,7 +116,6 @@
     const db = getFirestore(app);
     const LIFF_ID = "2011391523-fqHvpw34"; 
 
-    // ตัวแปรเก็บข้อมูล
     let globalTimes = [];
     let dailyTimes = {};
     let closedDaysData = [];
@@ -170,24 +158,23 @@
                 const bottomActions = document.getElementById('bottom-actions');
                 
                 if (newStep === 1) {
-                    // 🌟 ปรับดีไซน์ปุ่มหน้าแรกให้ตรงตามภาพอ้างอิง
                     bottomActions.innerHTML = `
-                        <button class="w-full py-4 px-4 bg-primary text-white rounded-full text-[18px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="validateStep1()">Next</button>
-                        <div class="flex gap-3 w-full mt-1.5">
-                            <a href="tel:0957356302" class="flex-[1.4] py-3.5 px-4 bg-transparent border border-primary text-primary rounded-full text-[16px] font-medium flex justify-center items-center gap-2 hover:bg-blue-50 transition-colors">
+                        <button class="w-full py-3.5 px-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="validateStep1()">Next</button>
+                        <div class="flex gap-3 w-full mt-1">
+                            <a href="tel:0957356302" class="flex-[2] py-3 px-4 bg-white border border-primary text-primary rounded-full text-[16px] font-medium flex justify-center items-center gap-2 hover:bg-blue-50 transition-colors">
                                 <span>จองคิวเวลาอื่น</span>
-                                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
                             </a>
-                            <button onclick="if(typeof liff !== 'undefined' && liff.isInClient()) liff.closeWindow();" class="flex-[1] py-3.5 px-4 bg-transparent border border-primary text-primary rounded-full text-[16px] font-medium flex justify-center items-center hover:bg-blue-50 transition-colors">แชท</button>
+                            <button onclick="if(typeof liff !== 'undefined' && liff.isInClient()) liff.closeWindow();" class="flex-1 py-3 px-4 bg-white border border-primary text-primary rounded-full text-[16px] font-medium flex justify-center items-center hover:bg-blue-50 transition-colors">แชท</button>
                         </div>
                     `;
                 } else if (newStep === 2) {
                     bottomActions.innerHTML = `
-                        <button id="btn-next-step2" class="w-full py-4 px-4 bg-primary text-white rounded-full text-[18px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="validateStep2()">ยืนยันการจองคิว</button>
-                        <button class="w-full py-3.5 px-4 bg-transparent border border-gray-300 text-gray-500 rounded-full text-[16px] font-medium hover:bg-gray-100 transition-colors mt-2" onclick="window.myStepper.prev()">กลับไปแก้ไขเวลา</button>
+                        <button id="btn-next-step2" class="w-full py-3.5 px-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="validateStep2()">ยืนยันการจองคิว</button>
+                        <button class="w-full py-3.5 px-4 bg-[#e5e7eb] text-gray-500 rounded-full text-[17px] font-medium hover:bg-gray-300 transition-colors mt-1" onclick="window.myStepper.prev()">กลับไปแก้ไขเวลา</button>
                     `;
                 } else if (newStep === 3) {
-                    bottomActions.innerHTML = `<button class="w-full py-4 px-4 bg-primary text-white rounded-full text-[18px] font-medium shadow-sm hover:bg-blue-600 transition-colors" onclick="closeAndSendMessage()">ยืนยันและปิดหน้าต่าง</button>`;
+                    bottomActions.innerHTML = `<button class="w-full py-3.5 px-4 bg-primary text-white rounded-full text-[17px] font-medium shadow-md hover:bg-blue-600 transition-colors" onclick="closeAndSendMessage()">ยืนยันและปิดหน้าต่าง</button>`;
                 }
             }
         });
@@ -278,14 +265,14 @@
     function renderCalendar() {
         const container = document.getElementById('calendar-container');
         container.innerHTML = '';
-
+        
         shopData.dates.forEach(d => {
             const wrapper = document.createElement('div');
-            wrapper.className = "flex flex-col items-center gap-1 min-w-[42px]";
+            wrapper.className = "flex flex-col items-center gap-1.5 min-w-[44px]";
             
             if (d.isClosed) {
                 wrapper.innerHTML = `
-                    <div class="cal-day-text text-gray-300">ปิด</div>
+                    <div class="cal-day-text text-red-400">ปิด</div>
                     <div class="cal-date disabled">${d.dateNum}</div>
                 `;
             } else {
@@ -366,6 +353,7 @@
         if (bookingForm.time) {
             const isStillAvailable = Array.from(container.children).some(el => el.innerText === bookingForm.time && !el.classList.contains('disabled'));
             const isScreen1Visible = document.getElementById('screen1').classList.contains('flex');
+            
             if (!isStillAvailable && isScreen1Visible) { 
                 bookingForm.time = ''; 
             }
@@ -414,7 +402,7 @@
         document.getElementById('booking-preview').innerHTML = 
             `<p>บริการ: <span class="font-bold text-black">${bookingForm.service}</span></p>
              <p>วันที่: <span class="font-bold text-black">${bookingForm.date}</span></p>
-             <p>เวลา: <span class="font-bold text-black">${bookingForm.time}</span></p>`;
+             <p>เวลา: <span class="font-bold text-black">${bookingForm.time} น.</span></p>`;
         window.myStepper.next();
     }
 

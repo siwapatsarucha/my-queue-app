@@ -407,10 +407,16 @@
         renderTimes(fullDate); 
     }
 
+    // ฟังก์ชันเมื่อลูกค้ากดเลือกเวลา
     function selectTime(element, timeStr) {
-        document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-        bookingForm.time = timeStr;
+        // 1. ลบไฮไลต์ปุ่มเวลาอื่นออกให้หมด
+        document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('active', 'bg-primary', 'text-white'));
+        
+        // 2. ไฮไลต์ปุ่มที่ลูกค้าเพิ่งกด
+        element.classList.add('active', 'bg-primary', 'text-white');
+        
+        // ⚠️ 3. จุดสำคัญ: ต้องบันทึกเวลาลงตัวแปร bookingForm ด้วย
+        bookingForm.time = timeStr; 
     }
 
     function validateStep1() {

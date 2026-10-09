@@ -143,7 +143,8 @@
     const DAYS_TO_GENERATE = 14; 
 
     let shopData = { dates: [] };
-    let bookingForm = { phone: '', date: '', service: '', time: '', lineUserId: '' };
+    // 🌟 อัปเดตตัวแปรเพิ่ม displayName และ pictureUrl
+    let bookingForm = { phone: '', date: '', service: '', time: '', lineUserId: '', displayName: '', pictureUrl: '' };
     let realTimeBookings = []; 
 
     window.selectService = selectService;
@@ -159,6 +160,9 @@
                 if (liff.isInClient() || liff.isLoggedIn()) {
                     liff.getProfile().then(profile => {
                         bookingForm.lineUserId = profile.userId;
+                        // 🌟 ดึงข้อมูลชื่อและรูปโปรไฟล์เก็บไว้
+                        bookingForm.displayName = profile.displayName;
+                        bookingForm.pictureUrl = profile.pictureUrl;
                     }).catch(err => console.error("Error profile:", err));
                 }
             })
@@ -440,12 +444,15 @@
         btnNext.disabled = true;
 
         try {
+            // 🌟 เพิ่ม displayName และ pictureUrl ลงในเอกสาร Firebase
             await addDoc(collection(db, "bookings"), {
                 phone: bookingForm.phone,
                 service: bookingForm.service,
                 date: bookingForm.date,
                 time: bookingForm.time,
                 lineUserId: bookingForm.lineUserId || "ไม่ระบุ",
+                displayName: bookingForm.displayName || "ลูกค้าทั่วไป",
+                pictureUrl: bookingForm.pictureUrl || "",
                 status: "รอรับบริการ",
                 createdAt: serverTimestamp() 
             });
